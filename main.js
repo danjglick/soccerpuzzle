@@ -11,61 +11,20 @@ const WALL_WIDTH = BALL_RADIUS * 5
 const ENEMY_COUNT = 2
 const SHIM = BALL_RADIUS * 2
 
-
 let canvas;
 let ctx;
-let ball = {
-  spawn: {
-    xPos: 0,
-    yPos: 0
-  },
-  xPos: 0,
-  yPos: 0,
-  xVel: 0,
-  yVel: 0,
-  isBeingFlung: false
-}
-let goal = {
-  xPos: 0,
-  yPos: 0 
-}
-let cannon = {
-  xPos: 0,
-  yPos: 0,
-  angle: 0
-}
-let puddle = {
-  xPos: 0,
-  yPos: 0
-}
-let wormhole = {
-  a: {
-    xPos: 0,
-    yPos: 0
-  },
-  b: {
-    xPos: 0,
-    yPos: 0
-  }
-}
-let wall = {
-  xPos: 0,
-  yPos: 0,
-  angle: 0
-}
-let key = {
-  xPos: 0,
-  yPos: 0,
-  isGot: false
-}
+let ball = { spawn: { xPos: 0, yPos: 0 }, xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false }
+let goal = { xPos: 0, yPos: 0 }
+let cannon = { xPos: 0, yPos: 0, angle: 0 }
+let puddle = { xPos: 0, yPos: 0 }
+let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 } }
+let wall = { xPos: 0, yPos: 0, angle: 0 }
+let key = { xPos: 0, yPos: 0, isGot: false }
 let enemies = []
-let placedSprites = []
-let touch1 = {
-  xPos: 0,
-  yPos: 0
-}
+let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
 let isWormholeEnabled = true
+let spawnedObstacles = []
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -79,15 +38,15 @@ function initialize() {
 }
 
 function generateLevel() {
-  placedSprites = []
   spawnBall()
   spawnGoal()
-  spawnTrap(cannon)
-  spawnTrap(puddle)
-  spawnTrap(wormhole.a)
-  spawnTrap(wormhole.b)
-  spawnTrap(wall)
-  spawnTrap(key)
+  spawnedObstacles = []
+  spawnObstacle(cannon)
+  spawnObstacle(puddle)
+  spawnObstacle(wormhole.a)
+  spawnObstacle(wormhole.b)
+  spawnObstacle(wall)
+  spawnObstacle(key)
   key.isGot = false
   loopGame()
 }
@@ -114,21 +73,18 @@ function spawnGoal() {
   }
 }
 
-function spawnTrap(trap) {
-  let trapMinY = goal.yPos + GOAL_HEIGHT + SHIM
-  let trapMaxY = ball.spawn.yPos - SHIM
-  
-  // don't touch when spawned
+function spawnObstacle(obstacle) {
+  let obstacleMinY = goal.yPos + GOAL_HEIGHT + SHIM
+  let obstacleMaxY = ball.spawn.yPos - SHIM
   let minDistance = BALL_RADIUS * 2.5
   let maxAttempts = 100
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    trap.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
-    trap.yPos = trapMinY + (trapMaxY - trapMinY) * Math.random()
-    
+    obstacle.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
+    obstacle.yPos = obstacleMinY + (obstacleMaxY - obstacleMinY) * Math.random()
     let overlaps = false
-    for (let placed of placedSprites) {
-      let dx = trap.xPos - placed.xPos
-      let dy = trap.yPos - placed.yPos
+    for (let placed of spawnedObstacles) {
+      let dx = obstacle.xPos - placed.xPos
+      let dy = obstacle.yPos - placed.yPos
       let distance = Math.sqrt(dx * dx + dy * dy)
       if (distance < minDistance) {
         overlaps = true
@@ -136,23 +92,16 @@ function spawnTrap(trap) {
       }
     }
     if (!overlaps) break
+  } 
+  spawnedObstacles.push({ xPos: obstacle.xPos, yPos: obstacle.yPos })
+  if ('angle' in obstacle) {
+    obstacle.angle = Math.random() * 2 * Math.PI
   }
-  
-  if ('angle' in trap) {
-    trap.angle = Math.random() * 2 * Math.PI
-  }
-  
-  placedSprites.push({ xPos: trap.xPos, yPos: trap.yPos })
 }
 
 function spawnEnemies() {
   for (let i = 0; i < ENEMY_COUNT; i++) {
-    enemies.push({
-      xPosOfPointA: 0,
-      yPosOfPointA: 0,
-      xPosOfPointB: 0,
-      yPosOfPointB: 0 
-    })
+    enemies.push({ xPosOfPointA: 0, yPosOfPointA: 0, xPosOfPointB: 0, yPosOfPointB: 0 })
   }
 }
 
@@ -174,10 +123,7 @@ function handleTouchstart(e) {
 
 function handleTouchmove(e) {
   e.preventDefault()
-  let touch2 = {
-    xPos: e.touches[0].clientX,
-    yPos: e.touches[0].clientY
-  }
+  let touch2 = { xPos: e.touches[0].clientX, yPos: e.touches[0].clientY }
   if (ball.isBeingFlung) {
     ball.xVel = (touch2.xPos - touch1.xPos) / FLING_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / FLING_DIVISOR
@@ -356,9 +302,9 @@ function drawPuddle() {
 }
 
 function drawWormhole() {
-  for (let component of Object.values(wormhole)) {
+  for (let node of Object.values(wormhole)) {
     ctx.beginPath()
-    ctx.arc(component.xPos, component.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+    ctx.arc(node.xPos, node.yPos, BALL_RADIUS, 0, 2 * Math.PI)
     ctx.fillStyle = "purple"
     ctx.fill()
   }
@@ -386,7 +332,7 @@ function drawWall() {
 
 function drawKey() {
   ctx.beginPath()
-  ctx.arc(key.xPos, key.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.arc(key.xPos, key.yPos, BALL_RADIUS, 0, 2 * Math.PI)
   ctx.fillStyle = "green"
   ctx.fill()
   if (!key.isGot) {
