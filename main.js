@@ -3,7 +3,7 @@
 
 const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
-const BALL_RADIUS = window.innerWidth / 16
+const BALL_RADIUS = window.innerWidth / 20
 const FLING_DIVISOR = 4
 const GOAL_HEIGHT = BALL_RADIUS * 2
 const GOAL_WIDTH = BALL_RADIUS * 4
@@ -13,18 +13,27 @@ const SHIM = BALL_RADIUS * 2
 
 let canvas;
 let ctx;
-let ball = { spawn: { xPos: 0, yPos: 0 }, xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false }
+let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
+let ballSpawn = { xPos: 0, yPos: 0 }
 let goal = { xPos: 0, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
 let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 } }
 let wall = { xPos: 0, yPos: 0, angle: 0 }
 let key = { xPos: 0, yPos: 0, isGot: false }
-let enemies = []
+let balls = [] // AI
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
 let isWormholeEnabled = true
 let spawnedObstacles = []
+
+// ai
+let rotatingObject = null
+let wallPivot = null
+let obstacles = []
+let selectedObstacle = null
+let swapAnimation = null
+let SWAP_DURATION = 20
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -33,6 +42,7 @@ function initialize() {
   ctx = canvas.getContext('2d')
   document.addEventListener('touchstart', handleTouchstart)
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
+  document.addEventListener('touchend', handleTouchend) // AI
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
   generateLevel()
 }
@@ -41,6 +51,8 @@ function generateLevel() {
   spawnBall()
   spawnGoal()
   spawnedObstacles = []
+  selectedObstacle = null // ai
+  obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall, key] // ai
   spawnObstacle(cannon)
   spawnObstacle(puddle)
   spawnObstacle(wormhole.a)
@@ -52,7 +64,7 @@ function generateLevel() {
 }
 
 function spawnBall() {
-  let ballSpawn = {
+  ballSpawn = {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
     yPos: canvas.height - BALL_RADIUS
   }
@@ -62,8 +74,10 @@ function spawnBall() {
     yPos: ballSpawn.yPos,
     xVel: 0,
     yVel: 0,
+    radius: BALL_RADIUS,
     isBeingFlung: false
   }
+  balls = [ball] // ai
 }
 
 function spawnGoal() {
@@ -73,6 +87,7 @@ function spawnGoal() {
   }
 }
 
+// ai
 function spawnObstacle(obstacle) {
   let obstacleMinY = goal.yPos + GOAL_HEIGHT + SHIM
   let obstacleMaxY = ball.spawn.yPos - SHIM
@@ -99,17 +114,17 @@ function spawnObstacle(obstacle) {
   }
 }
 
-function spawnEnemies() {
-  for (let i = 0; i < ENEMY_COUNT; i++) {
-    enemies.push({ xPosOfPointA: 0, yPosOfPointA: 0, xPosOfPointB: 0, yPosOfPointB: 0 })
-  }
-}
-
 function resetLevel() {
-  ball.xPos = ball.spawn.xPos
-  ball.yPos = ball.spawn.yPos
-  ball.xVel = 0
-  ball.yVel = 0
+  ball = {
+    spawn: ballSpawn,
+    xPos: ballSpawn.xPos,
+    yPos: ballSpawn.yPos,
+    xVel: 0,
+    yVel: 0,
+    radius: BALL_RADIUS,
+    isBeingFlung: false
+  }
+  balls = [ball] // ai
   key.isGot = false
 }
 
@@ -118,7 +133,45 @@ function handleTouchstart(e) {
   touch1.yPos = e.touches[0].clientY
   if (isClose(touch1, ball, BALL_RADIUS)) {
     ball.isBeingFlung = true
+    return
   }
+
+  // ai
+  let cannonHandle = getCannonHandle()
+  if (isClose(touch1, cannonHandle, BALL_RADIUS)) {
+    rotatingObject = cannon
+    return
+  }
+  let wallEnds = getWallEnds()
+  if (isClose(touch1, wallEnds.a, BALL_RADIUS)) {
+    rotatingObject = wall
+    wallPivot = wallEnds.b
+    return
+  }
+  if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
+    rotatingObject = wall
+    wallPivot = wallEnds.a
+    return
+  }
+  if (swapAnimation) return
+  let tappedObstacle = getTappedObstacle(touch1)
+  if (tappedObstacle) {
+    if (selectedObstacle && selectedObstacle !== tappedObstacle) {
+      startSwapAnimation(selectedObstacle, tappedObstacle)
+      selectedObstacle = null
+    } else {
+      selectedObstacle = tappedObstacle
+    }
+  } else {
+    selectedObstacle = null
+  }
+}
+
+// ai
+function handleTouchend() {
+  ball.isBeingFlung = false
+  rotatingObject = null
+  wallPivot = null
 }
 
 function handleTouchmove(e) {
@@ -128,10 +181,85 @@ function handleTouchmove(e) {
     ball.xVel = (touch2.xPos - touch1.xPos) / FLING_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / FLING_DIVISOR
   }
+  
+  // ai
+  if (rotatingObject === cannon) {
+    let dx = touch2.xPos - cannon.xPos
+    let dy = touch2.yPos - cannon.yPos
+    cannon.angle = Math.atan2(-dx, dy)
+  }
+  if (rotatingObject === wall && wallPivot) {
+    let dx = touch2.xPos - wallPivot.xPos
+    let dy = touch2.yPos - wallPivot.yPos
+    wall.angle = Math.atan2(dy, dx)
+    wall.xPos = wallPivot.xPos + Math.cos(wall.angle) * WALL_WIDTH / 2
+    wall.yPos = wallPivot.yPos + Math.sin(wall.angle) * WALL_WIDTH / 2
+  }
+}
+
+// ai
+function getCannonHandle() { 
+  return {
+    xPos: cannon.xPos - Math.sin(cannon.angle) * BALL_RADIUS * 1.5,
+    yPos: cannon.yPos + Math.cos(cannon.angle) * BALL_RADIUS * 1.5
+  }
+}
+
+// ai
+function getWallEnds() {
+  let dirX = Math.cos(wall.angle)
+  let dirY = Math.sin(wall.angle)
+  return {
+    a: { xPos: wall.xPos - WALL_WIDTH / 2 * dirX, yPos: wall.yPos - WALL_WIDTH / 2 * dirY },
+    b: { xPos: wall.xPos + WALL_WIDTH / 2 * dirX, yPos: wall.yPos + WALL_WIDTH / 2 * dirY }
+  }
+}
+
+// ai
+function getTappedObstacle(touch) {
+  for (let obstacle of obstacles) {
+    if (isClose(touch, obstacle, BALL_RADIUS)) {
+      return obstacle
+    }
+  }
+  return null
+}
+
+// ai
+function startSwapAnimation(obstacleA, obstacleB) {
+  swapAnimation = {
+    obstacleA: obstacleA,
+    obstacleB: obstacleB,
+    startAX: obstacleA.xPos,
+    startAY: obstacleA.yPos,
+    startBX: obstacleB.xPos,
+    startBY: obstacleB.yPos,
+    progress: 0
+  }
+}
+
+// ai
+function updateSwapAnimation() {
+  if (!swapAnimation) return
+  swapAnimation.progress++
+  let t = swapAnimation.progress / SWAP_DURATION
+  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  swapAnimation.obstacleA.xPos = swapAnimation.startAX + (swapAnimation.startBX - swapAnimation.startAX) * eased
+  swapAnimation.obstacleA.yPos = swapAnimation.startAY + (swapAnimation.startBY - swapAnimation.startAY) * eased
+  swapAnimation.obstacleB.xPos = swapAnimation.startBX + (swapAnimation.startAX - swapAnimation.startBX) * eased
+  swapAnimation.obstacleB.yPos = swapAnimation.startBY + (swapAnimation.startAY - swapAnimation.startBY) * eased
+  if (swapAnimation.progress >= SWAP_DURATION) {
+    swapAnimation.obstacleA.xPos = swapAnimation.startBX
+    swapAnimation.obstacleA.yPos = swapAnimation.startBY
+    swapAnimation.obstacleB.xPos = swapAnimation.startAX
+    swapAnimation.obstacleB.yPos = swapAnimation.startAY
+    swapAnimation = null
+  }
 }
 
 function loopGame() {
   moveBall()
+  updateSwapAnimation() // ai
   handleCollision()
   draw()
   setTimeout(loopGame, MS_PER_FRAME)
@@ -143,13 +271,13 @@ function moveBall() {
 }
 
 function handleCollision() {
- handleCollisionWithGoal()
- handleCollisionWithCannon()
- handleCollisionWithPuddle()
- handleCollisionWithWormhole()
- handleCollisionWithWall()
- handleCollisionWithKey()
- handleCollisionWithEdge()
+  handleCollisionWithGoal()
+  handleCollisionWithCannon()
+  handleCollisionWithPuddle()
+  handleCollisionWithWormhole()
+  handleCollisionWithWall()
+  handleCollisionWithKey()
+  handleCollisionWithEdge()
 }
 
 function handleCollisionWithGoal() {
@@ -161,6 +289,7 @@ function handleCollisionWithGoal() {
     if (key.isGot) {
       score++
       generateLevel()
+      return
     } else {
       ball.yVel = -ball.yVel
     }
@@ -168,7 +297,7 @@ function handleCollisionWithGoal() {
 }
 
 function handleCollisionWithCannon() {
-  if (isClose(ball, cannon)) {
+  if (isClose(ball, cannon, BALL_RADIUS * 2)) {
     let speed = Math.sqrt(ball.xVel * ball.xVel + ball.yVel * ball.yVel)
     ball.xVel = Math.sin(cannon.angle) * speed
     ball.yVel = -Math.cos(cannon.angle) * speed
@@ -176,7 +305,7 @@ function handleCollisionWithCannon() {
 }
 
 function handleCollisionWithPuddle() {
-  if (isClose(ball, puddle)) {
+  if (isClose(ball, puddle, BALL_RADIUS * 2)) {
     ball.xVel = 0
     ball.yVel = 0
   }
@@ -184,19 +313,20 @@ function handleCollisionWithPuddle() {
 
 function handleCollisionWithWormhole() {
   if (!isWormholeEnabled) return
-  if (isClose(ball, wormhole.a)) {
+  if (isClose(ball, wormhole.a, BALL_RADIUS * 2)) {
     ball.xPos = wormhole.b.xPos
     ball.yPos = wormhole.b.yPos
     isWormholeEnabled = false
     setTimeout(() => isWormholeEnabled = true, 1000)
-  } else if (isClose(ball, wormhole.b)) {
-    ball.xPos = wormhole.a.xPos
-    ball.yPos = wormhole.a.yPos
+  } else if (isClose(ball, wormhole.b, BALL_RADIUS * 2)) {
+    b.xPos = wormhole.a.xPos
+    b.yPos = wormhole.a.yPos
     isWormholeEnabled = false
     setTimeout(() => isWormholeEnabled = true, 1000)
   }
 }
 
+// ai
 function handleCollisionWithWall() {
   let dirX = Math.cos(wall.angle)
   let dirY = Math.sin(wall.angle)
@@ -239,7 +369,8 @@ function handleCollisionWithEdge() {
     ball.yPos = BALL_RADIUS
     ball.yVel = -ball.yVel
   } else if (ball.yPos + BALL_RADIUS > canvas.height) {
-    resetLevel()
+    ball.yPos = canvas.height - BALL_RADIUS
+    ball.yVel = -ball.yVel
   }
 }
 
@@ -253,12 +384,23 @@ function draw() {
   drawWall()
   drawKey()
   drawScore()
+  drawSelectedObstacle() // ai
+}
+
+// ai
+function drawSelectedObstacle() {
+  if (!selectedObstacle) return
+  ctx.beginPath()
+  ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
+  ctx.strokeStyle = "green"
+  ctx.lineWidth = 4
+  ctx.stroke()
 }
 
 function drawBall() {
   ctx.beginPath()
   ctx.arc(ball.xPos, ball.yPos, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = 'white'
+  ctx.fillStyle = "grey"
   ctx.fill()
 }
 
@@ -268,7 +410,7 @@ function drawGoal() {
     let half_goal_width = (i == 1 ? GOAL_WIDTH : -GOAL_WIDTH) / 2
     ctx.rect(goal.xPos, goal.yPos, half_goal_width, GOAL_HEIGHT)
   }
-  ctx.fillStyle = 'grey'
+  ctx.fillStyle = "grey"
   ctx.fill()
 }
 
@@ -278,9 +420,9 @@ function drawCannon() {
   ctx.rotate(cannon.angle)
   ctx.beginPath()
   ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = 'orange'
+  ctx.fillStyle = "red"
   ctx.fill()
-  ctx.fillStyle = 'black'
+  ctx.fillStyle = "black"
   ctx.beginPath()
   ctx.moveTo(0, -BALL_RADIUS * 0.6)
   ctx.lineTo(BALL_RADIUS * 0.4, BALL_RADIUS * 0.2)
@@ -290,6 +432,10 @@ function drawCannon() {
   ctx.lineTo(-BALL_RADIUS * 0.15, BALL_RADIUS * 0.2)
   ctx.lineTo(-BALL_RADIUS * 0.4, BALL_RADIUS * 0.2)
   ctx.closePath()
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(0, BALL_RADIUS * 1.5, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.fillStyle = "red"
   ctx.fill()
   ctx.restore()
 }
@@ -317,30 +463,36 @@ function drawWormhole() {
   ctx.closePath()
 }
 
+// ai
 function drawWall() {
-  ctx.save()
-  ctx.translate(wall.xPos, wall.yPos)
-  ctx.rotate(wall.angle)
+  let ends = getWallEnds()
   ctx.beginPath()
-  ctx.moveTo(-WALL_WIDTH / 2, 0)
-  ctx.lineTo(WALL_WIDTH / 2, 0)
+  ctx.moveTo(ends.a.xPos, ends.a.yPos)
+  ctx.lineTo(ends.b.xPos, ends.b.yPos)
   ctx.lineWidth = BALL_RADIUS / 4
-  ctx.strokeStyle = "brown"
+  ctx.strokeStyle = "#654321"
   ctx.stroke()
-  ctx.restore()
+  ctx.beginPath()
+  ctx.arc(ends.a.xPos, ends.a.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.fillStyle = '#654321'
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.fillStyle = "#654321"
+  ctx.fill()
 }
 
 function drawKey() {
   ctx.beginPath()
-  ctx.arc(key.xPos, key.yPos, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = "green"
+  ctx.arc(key.xPos, key.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.fillStyle = "orange"
   ctx.fill()
   if (!key.isGot) {
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
-    ctx.lineWidth = BALL_RADIUS / 4
-    ctx.strokeStyle = "green"
+    ctx.lineWidth = BALL_RADIUS
+    ctx.strokeStyle = "orange"
     ctx.stroke()
     ctx.restore()
   }
@@ -348,9 +500,9 @@ function drawKey() {
 
 function drawScore() {
   ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
-  ctx.fillStyle = 'black'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
+  ctx.fillStyle = "black"
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
   ctx.fillText(score, goal.xPos, goal.yPos + GOAL_HEIGHT / 2)
 }
 
