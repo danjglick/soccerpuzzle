@@ -5,7 +5,7 @@ const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
 const BALL_RADIUS = window.innerWidth / 20
 const FLING_DIVISOR = 4
-const GOAL_HEIGHT = BALL_RADIUS * 2
+const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_WIDTH = BALL_RADIUS * 5
 const COLORS = { cannon: "red", puddle: "blue", wormhole: "purple", wall: "#654321", key: "orange" }
@@ -114,7 +114,7 @@ function handleTouchmove(e) {
     ball.xVel = (touch2.xPos - touch1.xPos) / FLING_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / FLING_DIVISOR
   }
-  handleTouchmoveToRotate()
+  handleTouchmoveToRotate(touch2)
 }
 
 function handleTouchend() {
@@ -309,7 +309,7 @@ function drawWormhole() {
   ctx.fillStyle = "purple"
   ctx.fill()
   ctx.beginPath()
-  ctx.arc(wormhole.exit.xPos, wormhole.exit.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.arc(wormhole.exit.xPos, wormhole.exit.yPos, BALL_RADIUS / 4, 0, 2 * Math.PI)
   ctx.fill()
   ctx.beginPath()
   ctx.moveTo(wormhole.entrance.xPos, wormhole.entrance.yPos)
@@ -347,7 +347,7 @@ function drawKey() {
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
-    ctx.lineWidth = BALL_RADIUS
+    ctx.lineWidth = GOAL_HEIGHT / 2
     ctx.strokeStyle = COLORS.key
     ctx.stroke()
     ctx.restore()
@@ -355,7 +355,7 @@ function drawKey() {
 }
 
 function drawScore() {
-  ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
+  ctx.font = `bold ${GOAL_HEIGHT * 1.5}px sans-serif`
   ctx.fillStyle = "black"
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
@@ -418,7 +418,7 @@ function handleTouchstartToSwap() {
   }
 }
 
-function handleTouchmoveToRotate() {
+function handleTouchmoveToRotate(touch2) {
   if (rotatingObject === cannon) {
     let dx = touch2.xPos - cannon.xPos
     let dy = touch2.yPos - cannon.yPos
