@@ -8,7 +8,6 @@ const FLING_DIVISOR = 4
 const GOAL_HEIGHT = BALL_RADIUS * 2
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_WIDTH = BALL_RADIUS * 5
-const ENEMY_COUNT = 2
 const SHIM = BALL_RADIUS * 2
 
 let canvas;
