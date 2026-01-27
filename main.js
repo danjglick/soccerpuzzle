@@ -16,7 +16,7 @@ let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { x
 let goal = { xPos: window.innerWidth / 2, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
 let puddle = { xPos: 0, yPos: 0 }
-let wormhole = { entrance: { xPos: 0, yPos: 0 }, exit: { xPos: 0, yPos: 0 } }
+let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
 let wall = { xPos: 0, yPos: 0, angle: 0 }
 let key = { xPos: 0, yPos: 0, isGot: false }
 let touch1 = { xPos: 0, yPos: 0 }
@@ -42,8 +42,8 @@ function generateLevel() {
   initializeSwapData()
   spawnObstacle(cannon)
   spawnObstacle(puddle)
-  spawnObstacle(wormhole.entrance)
-  spawnObstacle(wormhole.exit)
+  spawnObstacle(wormhole.a)
+  spawnObstacle(wormhole.b)
   spawnObstacle(wall)
   spawnObstacle(key)
   key.isGot = false
@@ -178,9 +178,18 @@ function handleCollisionWithPuddle() {
 }
 
 function handleCollisionWithWormhole() {
-  if (isClose(ball, wormhole.entrance, BALL_RADIUS * 2)) {
-    ball.xPos = wormhole.exit.xPos
-    ball.yPos = wormhole.exit.yPos
+  if (wormhole.isEnabled) {
+    if (isClose(ball, wormhole.a, BALL_RADIUS * 2)) {
+      ball.xPos = wormhole.b.xPos
+      ball.yPos = wormhole.b.yPos
+      wormhole.isEnabled = false
+      setTimeout(() => wormhole.isEnabled = true, 3000)
+    } else if (isClose(ball, wormhole.b, BALL_RADIUS * 2)) {
+      ball.xPos = wormhole.a.xPos
+      ball.yPos = wormhole.a.yPos
+      wormhole.isEnabled = false
+      setTimeout(() => wormhole.isEnabled = true, 3000)
+    }
   }
 }
 
@@ -304,18 +313,18 @@ function drawPuddle() {
 }
 
 function drawWormhole() {
+  let color = wormhole.isEnabled ? "purple" : "black"
+  for (let node of Object.values(wormhole)) {
+    ctx.beginPath()
+    ctx.arc(node.xPos, node.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
+  }
   ctx.beginPath()
-  ctx.arc(wormhole.entrance.xPos, wormhole.entrance.yPos, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = "purple"
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(wormhole.exit.xPos, wormhole.exit.yPos, BALL_RADIUS / 4, 0, 2 * Math.PI)
-  ctx.fill()
-  ctx.beginPath()
-  ctx.moveTo(wormhole.entrance.xPos, wormhole.entrance.yPos)
-  ctx.lineTo(wormhole.exit.xPos, wormhole.exit.yPos)
+  ctx.moveTo(wormhole.a.xPos, wormhole.a.yPos)
+  ctx.lineTo(wormhole.b.xPos, wormhole.b.yPos)
   ctx.lineWidth = 1
-  ctx.strokeStyle = "purple"
+  ctx.strokeStyle = color
   ctx.stroke()
   ctx.closePath()
 }
@@ -381,7 +390,7 @@ let SWAP_DURATION = 20
 
 function initializeSwapData() {
   selectedObstacle = null
-  obstacles = [cannon, puddle, wormhole.entrance, wormhole.exit, wall, key]
+  obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall, key]
 }
 
 function handleTouchstartToRotate() {
