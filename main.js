@@ -9,11 +9,12 @@ const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_WIDTH = BALL_RADIUS * 5
 const COLORS = { cannon: "red", puddle: "blue", wormhole: "purple", wall: "#654321", key: "orange" }
+const BALL_SPAWN = { xPos: window.innerWidth / 2, yPos: window.innerHeight - BALL_RADIUS, xVel: 0, yVel: 0, isBeingFlung: false }
 
 let canvas;
 let ctx;
-let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
-let goal = { xPos: 0, yPos: 0 }
+let ball = BALL_SPAWN
+let goal = { xPos: window.innerWidth / 2, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
 let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { entrance: { xPos: 0, yPos: 0 }, exit: { xPos: 0, yPos: 0 } }
@@ -36,8 +37,7 @@ function initialize() {
 }
 
 function generateLevel() {
-  spawnBall()
-  spawnGoal()
+  ball = BALL_SPAWN
   spawnedObstacles = []
   initializeSwapData()
   spawnObstacle(cannon)
@@ -50,24 +50,9 @@ function generateLevel() {
   loopGame()
 }
 
-function spawnBall() {
-  let spawn = {
-    xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
-    yPos: canvas.height - BALL_RADIUS
-  }
-  ball = { xPos: spawn.xPos, yPos: spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: spawn }
-}
-
-function spawnGoal() {
-  goal = {
-    xPos: GOAL_WIDTH + (canvas.width - 2 * GOAL_WIDTH) * Math.random(),
-    yPos: 0 
-  }
-}
-
 function spawnObstacle(obstacle) {
   let obstacleMinY = goal.yPos + GOAL_HEIGHT + BALL_RADIUS * 2
-  let obstacleMaxY = ball.spawn.yPos - BALL_RADIUS * 2
+  let obstacleMaxY = BALL_SPAWN.yPos - BALL_RADIUS * 2
   let minDistance = BALL_RADIUS * 2.5
   let maxAttempts = 100
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -92,7 +77,7 @@ function spawnObstacle(obstacle) {
 }
 
 function resetLevel() {
-  ball = { xPos: ball.spawn.xPos, yPos: ball.spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: ball.spawn }
+  ball = BALL_SPAWN
   key.isGot = false
 }
 
