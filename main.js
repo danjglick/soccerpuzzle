@@ -14,26 +14,16 @@ const SHIM = BALL_RADIUS * 2
 let canvas;
 let ctx;
 let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
-let ballSpawn = { xPos: 0, yPos: 0 }
 let goal = { xPos: 0, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
 let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 } }
 let wall = { xPos: 0, yPos: 0, angle: 0 }
 let key = { xPos: 0, yPos: 0, isGot: false }
-let balls = [] // AI
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
 let isWormholeEnabled = true
 let spawnedObstacles = []
-
-// ai
-let rotatingObject = null
-let wallPivot = null
-let obstacles = []
-let selectedObstacle = null
-let swapAnimation = null
-let SWAP_DURATION = 20
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -51,8 +41,7 @@ function generateLevel() {
   spawnBall()
   spawnGoal()
   spawnedObstacles = []
-  selectedObstacle = null // ai
-  obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall, key] // ai
+  initializeSwapData()
   spawnObstacle(cannon)
   spawnObstacle(puddle)
   spawnObstacle(wormhole.a)
@@ -64,20 +53,19 @@ function generateLevel() {
 }
 
 function spawnBall() {
-  ballSpawn = {
+  let spawn = {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
     yPos: canvas.height - BALL_RADIUS
   }
   ball = {
-    spawn: ballSpawn,
-    xPos: ballSpawn.xPos,
-    yPos: ballSpawn.yPos,
+    spawn: spawn,
+    xPos: spawn.xPos,
+    yPos: spawn.yPos,
     xVel: 0,
     yVel: 0,
     radius: BALL_RADIUS,
     isBeingFlung: false
   }
-  balls = [ball] // ai
 }
 
 function spawnGoal() {
@@ -87,7 +75,6 @@ function spawnGoal() {
   }
 }
 
-// ai
 function spawnObstacle(obstacle) {
   let obstacleMinY = goal.yPos + GOAL_HEIGHT + SHIM
   let obstacleMaxY = ball.spawn.yPos - SHIM
@@ -116,15 +103,14 @@ function spawnObstacle(obstacle) {
 
 function resetLevel() {
   ball = {
-    spawn: ballSpawn,
-    xPos: ballSpawn.xPos,
-    yPos: ballSpawn.yPos,
+    spawn: ball.spawn,
+    xPos: spawn.xPos,
+    yPos: spawn.yPos,
     xVel: 0,
     yVel: 0,
     radius: BALL_RADIUS,
     isBeingFlung: false
   }
-  balls = [ball] // ai
   key.isGot = false
 }
 
@@ -135,43 +121,8 @@ function handleTouchstart(e) {
     ball.isBeingFlung = true
     return
   }
-
-  // ai
-  let cannonHandle = getCannonHandle()
-  if (isClose(touch1, cannonHandle, BALL_RADIUS)) {
-    rotatingObject = cannon
-    return
-  }
-  let wallEnds = getWallEnds()
-  if (isClose(touch1, wallEnds.a, BALL_RADIUS)) {
-    rotatingObject = wall
-    wallPivot = wallEnds.b
-    return
-  }
-  if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
-    rotatingObject = wall
-    wallPivot = wallEnds.a
-    return
-  }
-  if (swapAnimation) return
-  let tappedObstacle = getTappedObstacle(touch1)
-  if (tappedObstacle) {
-    if (selectedObstacle && selectedObstacle !== tappedObstacle) {
-      startSwapAnimation(selectedObstacle, tappedObstacle)
-      selectedObstacle = null
-    } else {
-      selectedObstacle = tappedObstacle
-    }
-  } else {
-    selectedObstacle = null
-  }
-}
-
-// ai
-function handleTouchend() {
-  ball.isBeingFlung = false
-  rotatingObject = null
-  wallPivot = null
+  handleTouchstartToRotate()
+  handleTouchstartToSwap()
 }
 
 function handleTouchmove(e) {
@@ -181,85 +132,18 @@ function handleTouchmove(e) {
     ball.xVel = (touch2.xPos - touch1.xPos) / FLING_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / FLING_DIVISOR
   }
-  
-  // ai
-  if (rotatingObject === cannon) {
-    let dx = touch2.xPos - cannon.xPos
-    let dy = touch2.yPos - cannon.yPos
-    cannon.angle = Math.atan2(-dx, dy)
-  }
-  if (rotatingObject === wall && wallPivot) {
-    let dx = touch2.xPos - wallPivot.xPos
-    let dy = touch2.yPos - wallPivot.yPos
-    wall.angle = Math.atan2(dy, dx)
-    wall.xPos = wallPivot.xPos + Math.cos(wall.angle) * WALL_WIDTH / 2
-    wall.yPos = wallPivot.yPos + Math.sin(wall.angle) * WALL_WIDTH / 2
-  }
+  handleTouchmoveToRotate()
 }
 
-// ai
-function getCannonHandle() { 
-  return {
-    xPos: cannon.xPos - Math.sin(cannon.angle) * BALL_RADIUS * 1.5,
-    yPos: cannon.yPos + Math.cos(cannon.angle) * BALL_RADIUS * 1.5
-  }
-}
-
-// ai
-function getWallEnds() {
-  let dirX = Math.cos(wall.angle)
-  let dirY = Math.sin(wall.angle)
-  return {
-    a: { xPos: wall.xPos - WALL_WIDTH / 2 * dirX, yPos: wall.yPos - WALL_WIDTH / 2 * dirY },
-    b: { xPos: wall.xPos + WALL_WIDTH / 2 * dirX, yPos: wall.yPos + WALL_WIDTH / 2 * dirY }
-  }
-}
-
-// ai
-function getTappedObstacle(touch) {
-  for (let obstacle of obstacles) {
-    if (isClose(touch, obstacle, BALL_RADIUS)) {
-      return obstacle
-    }
-  }
-  return null
-}
-
-// ai
-function startSwapAnimation(obstacleA, obstacleB) {
-  swapAnimation = {
-    obstacleA: obstacleA,
-    obstacleB: obstacleB,
-    startAX: obstacleA.xPos,
-    startAY: obstacleA.yPos,
-    startBX: obstacleB.xPos,
-    startBY: obstacleB.yPos,
-    progress: 0
-  }
-}
-
-// ai
-function updateSwapAnimation() {
-  if (!swapAnimation) return
-  swapAnimation.progress++
-  let t = swapAnimation.progress / SWAP_DURATION
-  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-  swapAnimation.obstacleA.xPos = swapAnimation.startAX + (swapAnimation.startBX - swapAnimation.startAX) * eased
-  swapAnimation.obstacleA.yPos = swapAnimation.startAY + (swapAnimation.startBY - swapAnimation.startAY) * eased
-  swapAnimation.obstacleB.xPos = swapAnimation.startBX + (swapAnimation.startAX - swapAnimation.startBX) * eased
-  swapAnimation.obstacleB.yPos = swapAnimation.startBY + (swapAnimation.startAY - swapAnimation.startBY) * eased
-  if (swapAnimation.progress >= SWAP_DURATION) {
-    swapAnimation.obstacleA.xPos = swapAnimation.startBX
-    swapAnimation.obstacleA.yPos = swapAnimation.startBY
-    swapAnimation.obstacleB.xPos = swapAnimation.startAX
-    swapAnimation.obstacleB.yPos = swapAnimation.startAY
-    swapAnimation = null
-  }
+function handleTouchend() {
+  ball.isBeingFlung = false
+  rotatingObject = null
+  wallPivot = null
 }
 
 function loopGame() {
   moveBall()
-  updateSwapAnimation() // ai
+  updateSwapAnimation()
   handleCollision()
   draw()
   setTimeout(loopGame, MS_PER_FRAME)
@@ -326,7 +210,6 @@ function handleCollisionWithWormhole() {
   }
 }
 
-// ai
 function handleCollisionWithWall() {
   let dirX = Math.cos(wall.angle)
   let dirY = Math.sin(wall.angle)
@@ -384,11 +267,10 @@ function draw() {
   drawWall()
   drawKey()
   drawScore()
-  drawSelectedObstacle() // ai
+  drawSelectionBorder()
 }
 
-// ai
-function drawSelectedObstacle() {
+function drawSelectionBorder() {
   if (!selectedObstacle) return
   ctx.beginPath()
   ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
@@ -463,7 +345,6 @@ function drawWormhole() {
   ctx.closePath()
 }
 
-// ai
 function drawWall() {
   let ends = getWallEnds()
   ctx.beginPath()
@@ -512,3 +393,124 @@ function isClose(objectA, objectB, threshold = SHIM) {
     Math.abs(objectA.yPos - objectB.yPos) < threshold
   )
 }
+
+
+// ai swap/rotate code 
+
+let rotatingObject = null
+let wallPivot = null
+let obstacles = []
+let selectedObstacle = null
+let swapAnimation = null
+let SWAP_DURATION = 20
+
+function initializeSwapData() {
+  selectedObstacle = null
+  obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall, key]
+}
+
+function handleTouchstartToRotate() { //ai
+  let cannonHandle = getCannonHandle()
+  if (isClose(touch1, cannonHandle, BALL_RADIUS)) {
+    rotatingObject = cannon
+    return
+  }
+  let wallEnds = getWallEnds()
+  if (isClose(touch1, wallEnds.a, BALL_RADIUS)) {
+    rotatingObject = wall
+    wallPivot = wallEnds.b
+    return
+  }
+  if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
+    rotatingObject = wall
+    wallPivot = wallEnds.a
+    return
+  }
+}
+
+function handleTouchstartToSwap() { //ai
+  if (swapAnimation) return
+  let tappedObstacle = getTappedObstacle(touch1)
+  if (tappedObstacle) {
+    if (selectedObstacle && selectedObstacle !== tappedObstacle) {
+      startSwapAnimation(selectedObstacle, tappedObstacle)
+      selectedObstacle = null
+    } else {
+      selectedObstacle = tappedObstacle
+    }
+  } else {
+    selectedObstacle = null
+  }
+}
+
+function handleTouchmoveToRotate() {
+  if (rotatingObject === cannon) {
+    let dx = touch2.xPos - cannon.xPos
+    let dy = touch2.yPos - cannon.yPos
+    cannon.angle = Math.atan2(-dx, dy)
+  }
+  if (rotatingObject === wall && wallPivot) {
+    let dx = touch2.xPos - wallPivot.xPos
+    let dy = touch2.yPos - wallPivot.yPos
+    wall.angle = Math.atan2(dy, dx)
+    wall.xPos = wallPivot.xPos + Math.cos(wall.angle) * WALL_WIDTH / 2
+    wall.yPos = wallPivot.yPos + Math.sin(wall.angle) * WALL_WIDTH / 2
+  }
+}
+
+function getCannonHandle() { 
+  return {
+    xPos: cannon.xPos - Math.sin(cannon.angle) * BALL_RADIUS * 1.5,
+    yPos: cannon.yPos + Math.cos(cannon.angle) * BALL_RADIUS * 1.5
+  }
+}
+
+function getWallEnds() {
+  let dirX = Math.cos(wall.angle)
+  let dirY = Math.sin(wall.angle)
+  return {
+    a: { xPos: wall.xPos - WALL_WIDTH / 2 * dirX, yPos: wall.yPos - WALL_WIDTH / 2 * dirY },
+    b: { xPos: wall.xPos + WALL_WIDTH / 2 * dirX, yPos: wall.yPos + WALL_WIDTH / 2 * dirY }
+  }
+}
+
+function getTappedObstacle(touch) {
+  for (let obstacle of obstacles) {
+    if (isClose(touch, obstacle, BALL_RADIUS)) {
+      return obstacle
+    }
+  }
+  return null
+}
+
+function startSwapAnimation(obstacleA, obstacleB) {
+  swapAnimation = {
+    obstacleA: obstacleA,
+    obstacleB: obstacleB,
+    startAX: obstacleA.xPos,
+    startAY: obstacleA.yPos,
+    startBX: obstacleB.xPos,
+    startBY: obstacleB.yPos,
+    progress: 0
+  }
+}
+
+function updateSwapAnimation() {
+  if (!swapAnimation) return
+  swapAnimation.progress++
+  let t = swapAnimation.progress / SWAP_DURATION
+  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  swapAnimation.obstacleA.xPos = swapAnimation.startAX + (swapAnimation.startBX - swapAnimation.startAX) * eased
+  swapAnimation.obstacleA.yPos = swapAnimation.startAY + (swapAnimation.startBY - swapAnimation.startAY) * eased
+  swapAnimation.obstacleB.xPos = swapAnimation.startBX + (swapAnimation.startAX - swapAnimation.startBX) * eased
+  swapAnimation.obstacleB.yPos = swapAnimation.startBY + (swapAnimation.startAY - swapAnimation.startBY) * eased
+  if (swapAnimation.progress >= SWAP_DURATION) {
+    swapAnimation.obstacleA.xPos = swapAnimation.startBX
+    swapAnimation.obstacleA.yPos = swapAnimation.startBY
+    swapAnimation.obstacleB.xPos = swapAnimation.startAX
+    swapAnimation.obstacleB.yPos = swapAnimation.startAY
+    swapAnimation = null
+  }
+}
+
+
