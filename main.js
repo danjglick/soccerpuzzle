@@ -8,7 +8,7 @@ const FLING_DIVISOR = 4
 const GOAL_HEIGHT = BALL_RADIUS * 2
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_WIDTH = BALL_RADIUS * 5
-const SHIM = BALL_RADIUS * 2
+const COLORS = { cannon: "red", puddle: "blue", wormhole: "purple", wall: "#654321", key: "orange" }
 
 let canvas;
 let ctx;
@@ -66,8 +66,8 @@ function spawnGoal() {
 }
 
 function spawnObstacle(obstacle) {
-  let obstacleMinY = goal.yPos + GOAL_HEIGHT + SHIM
-  let obstacleMaxY = ball.spawn.yPos - SHIM
+  let obstacleMinY = goal.yPos + GOAL_HEIGHT + BALL_RADIUS * 2
+  let obstacleMaxY = ball.spawn.yPos - BALL_RADIUS * 2
   let minDistance = BALL_RADIUS * 2.5
   let maxAttempts = 100
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -276,7 +276,7 @@ function drawCannon() {
   ctx.rotate(cannon.angle)
   ctx.beginPath()
   ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = "red"
+  ctx.fillStyle = COLORS.cannon
   ctx.fill()
   ctx.fillStyle = "black"
   ctx.beginPath()
@@ -291,7 +291,7 @@ function drawCannon() {
   ctx.fill()
   ctx.beginPath()
   ctx.arc(0, BALL_RADIUS * 1.5, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = "red"
+  ctx.fillStyle = COLORS.cannon
   ctx.fill()
   ctx.restore()
 }
@@ -326,29 +326,29 @@ function drawWall() {
   ctx.moveTo(ends.a.xPos, ends.a.yPos)
   ctx.lineTo(ends.b.xPos, ends.b.yPos)
   ctx.lineWidth = BALL_RADIUS / 4
-  ctx.strokeStyle = "#654321"
+  ctx.strokeStyle = COLORS.wall
   ctx.stroke()
   ctx.beginPath()
   ctx.arc(ends.a.xPos, ends.a.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = '#654321'
+  ctx.fillStyle = COLORS.wall
   ctx.fill()
   ctx.beginPath()
   ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = "#654321"
+  ctx.fillStyle = COLORS.wall
   ctx.fill()
 }
 
 function drawKey() {
   ctx.beginPath()
   ctx.arc(key.xPos, key.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = "orange"
+  ctx.fillStyle = COLORS.key
   ctx.fill()
   if (!key.isGot) {
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineWidth = BALL_RADIUS
-    ctx.strokeStyle = "orange"
+    ctx.strokeStyle = COLORS.key
     ctx.stroke()
     ctx.restore()
   }
@@ -362,7 +362,7 @@ function drawScore() {
   ctx.fillText(score, goal.xPos, goal.yPos + GOAL_HEIGHT / 2)
 }
 
-function isClose(objectA, objectB, threshold = SHIM) {
+function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   return(
     Math.abs(objectA.xPos - objectB.xPos) < threshold && 
     Math.abs(objectA.yPos - objectB.yPos) < threshold
