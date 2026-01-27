@@ -32,7 +32,7 @@ function initialize() {
   ctx = canvas.getContext('2d')
   document.addEventListener('touchstart', handleTouchstart)
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
-  document.addEventListener('touchend', handleTouchend) // AI
+  document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
   generateLevel()
 }
@@ -57,15 +57,7 @@ function spawnBall() {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
     yPos: canvas.height - BALL_RADIUS
   }
-  ball = {
-    spawn: spawn,
-    xPos: spawn.xPos,
-    yPos: spawn.yPos,
-    xVel: 0,
-    yVel: 0,
-    radius: BALL_RADIUS,
-    isBeingFlung: false
-  }
+  ball = { xPos: spawn.xPos, yPos: spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: spawn }
 }
 
 function spawnGoal() {
@@ -102,15 +94,7 @@ function spawnObstacle(obstacle) {
 }
 
 function resetLevel() {
-  ball = {
-    spawn: ball.spawn,
-    xPos: spawn.xPos,
-    yPos: spawn.yPos,
-    xVel: 0,
-    yVel: 0,
-    radius: BALL_RADIUS,
-    isBeingFlung: false
-  }
+  ball = { xPos: ball.spawn.xPos, yPos: ball.spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: ball.spawn }
   key.isGot = false
 }
 
@@ -409,7 +393,7 @@ function initializeSwapData() {
   obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall, key]
 }
 
-function handleTouchstartToRotate() { //ai
+function handleTouchstartToRotate() {
   let cannonHandle = getCannonHandle()
   if (isClose(touch1, cannonHandle, BALL_RADIUS)) {
     rotatingObject = cannon
@@ -428,7 +412,7 @@ function handleTouchstartToRotate() { //ai
   }
 }
 
-function handleTouchstartToSwap() { //ai
+function handleTouchstartToSwap() {
   if (swapAnimation) return
   let tappedObstacle = getTappedObstacle(touch1)
   if (tappedObstacle) {
