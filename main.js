@@ -393,7 +393,7 @@ let SWAP_DURATION = 20
 
 function initializeSwapData() {
   selectedObstacle = null
-  obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall, key]
+  obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall]
 }
 
 function handleTouchstartToRotate() {
