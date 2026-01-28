@@ -129,7 +129,7 @@ function handleTouchstart(e) {
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  if (isDevMode && isClose(touch1, key, BALL_RADIUS)) { cheatCodeCount++; if (cheatCodeCount > 4) key.isEnabled = false; return }
+  if (isDevMode && isClose(touch1, key, BALL_RADIUS)) { cheatCodeCount++; if (cheatCodeCount > 4) { key.isEnabled = false; bonus = []; } return }
 }
 
 function handleTouchmove(e) {
@@ -183,10 +183,11 @@ function handleCollisionWithGoal() {
         ball.yPos = goal.yPos - BALL_RADIUS
         ball.xVel = 0
         ball.yVel = 0
-        score++
+        let newPoints = 1
+        if (bonus.length == 0) newPoints *= multiplier
+        score += newPoints
         goal.isEnabled = false
         setTimeout(generateLevel, 1000)
-        if (bonus.length == 0) score *= multiplier
       } else {
         ball.yVel = Math.abs(ball.yVel)
         ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
