@@ -169,7 +169,7 @@ function handleCollisionWithCannon() {
 }
 
 function handleCollisionWithPuddle() {
-  if (!ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS)) {
+  if (!ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS * 2)) {
     ball.xVel = 0
     ball.yVel = 0
   }
