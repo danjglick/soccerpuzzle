@@ -434,7 +434,9 @@ function handleTouchmoveToRotate(touch2) {
     let dx = touch2.xPos - wall.xPos
     let dy = touch2.yPos - wall.yPos
     wall.angle = Math.atan2(dy, dx)
-    wall.length = Math.sqrt(dx * dx + dy * dy)
+    let wallLength = Math.sqrt(dx * dx + dy * dy)
+    wall.length = wallLength < WALL_LENGTH ? WALL_LENGTH : wallLength
+
   }
 }
 
