@@ -403,7 +403,7 @@ function drawKey() {
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
-    ctx.lineWidth = 3
+    ctx.lineWidth = 5
     ctx.strokeStyle = color
     ctx.stroke()
     ctx.restore()
@@ -413,7 +413,7 @@ function drawKey() {
 function drawBonus() {
   for (let i = 0; i < bonus.length; i++) {
     ctx.font = `bold ${BALL_RADIUS}px sans-serif`
-    ctx.fillStyle = "white"
+    ctx.fillStyle = "green"
     ctx.fillText(`${multiplier}x`, bonus[i].xPos, bonus[i].yPos)
   }
 }
