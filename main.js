@@ -8,17 +8,16 @@ const FLING_DIVISOR = 4
 const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_WIDTH = BALL_RADIUS * 5
-const COLORS = { cannon: "red", puddle: "blue", wormhole: "purple", wall: "#654321", key: "orange" }
 
 let canvas;
 let ctx;
 let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
-let goal = { xPos: window.innerWidth / 2, yPos: 0 }
+let goal = { xPos: 0, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
 let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
 let wall = { xPos: 0, yPos: 0, angle: 0 }
-let key = { xPos: 0, yPos: 0, isGot: false }
+let key = { xPos: 0, yPos: 0, isEnabled: true }
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
 let spawnedObstacles = []
@@ -46,7 +45,7 @@ function generateLevel() {
   spawnObstacle(wormhole.b)
   spawnObstacle(wall)
   spawnObstacle(key)
-  key.isGot = false
+  key.isEnabled = true
   loopGame()
 }
 
@@ -93,7 +92,7 @@ function spawnObstacle(obstacle) {
 
 function resetLevel() {
   ball = { xPos: ball.spawn.xPos, yPos: ball.spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: ball.spawn }
-  key.isGot = false
+  key.isEnabled = true
 }
 
 function handleTouchstart(e) {
@@ -120,7 +119,6 @@ function handleTouchmove(e) {
 function handleTouchend() {
   ball.isBeingFlung = false
   rotatingObject = null
-  wallPivot = null
 }
 
 function loopGame() {
@@ -147,12 +145,12 @@ function handleCollision() {
 }
 
 function handleCollisionWithGoal() {
-  if (
-    ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT &&
-    ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
-    ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
-  ) {
-    if (key.isGot) {
+  if (!key.isEnabled) {
+    if (
+      ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT &&
+      ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
+      ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
+    ) {
       score++
       generateLevel()
       return
@@ -220,7 +218,7 @@ function handleCollisionWithWall() {
 
 function handleCollisionWithKey() {
   if (isClose(ball, key, BALL_RADIUS + BALL_RADIUS / 2)) {
-    key.isGot = true
+    key.isEnabled = false
   }
 }
 
@@ -280,12 +278,13 @@ function drawGoal() {
 }
 
 function drawCannon() {
+  let color = "red"
   ctx.save()
   ctx.translate(cannon.xPos, cannon.yPos)
   ctx.rotate(cannon.angle)
   ctx.beginPath()
   ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = COLORS.cannon
+  ctx.fillStyle = color
   ctx.fill()
   ctx.fillStyle = "black"
   ctx.beginPath()
@@ -300,7 +299,7 @@ function drawCannon() {
   ctx.fill()
   ctx.beginPath()
   ctx.arc(0, BALL_RADIUS * 1.5, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = COLORS.cannon
+  ctx.fillStyle = color
   ctx.fill()
   ctx.restore()
 }
@@ -330,34 +329,36 @@ function drawWormhole() {
 }
 
 function drawWall() {
+  let color = "#654321"
   let ends = getWallEnds()
   ctx.beginPath()
   ctx.moveTo(ends.a.xPos, ends.a.yPos)
   ctx.lineTo(ends.b.xPos, ends.b.yPos)
   ctx.lineWidth = BALL_RADIUS / 4
-  ctx.strokeStyle = COLORS.wall
+  ctx.strokeStyle = color
   ctx.stroke()
   ctx.beginPath()
   ctx.arc(ends.a.xPos, ends.a.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = COLORS.wall
+  ctx.fillStyle = color
   ctx.fill()
   ctx.beginPath()
   ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = COLORS.wall
+  ctx.fillStyle = color
   ctx.fill()
 }
 
 function drawKey() {
-  ctx.beginPath()
-  ctx.arc(key.xPos, key.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = COLORS.key
-  ctx.fill()
-  if (!key.isGot) {
+  if (key.isEnabled) {
+    let color = "orange"
+    ctx.beginPath()
+    ctx.arc(key.xPos, key.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineWidth = GOAL_HEIGHT / 2
-    ctx.strokeStyle = COLORS.key
+    ctx.strokeStyle = color
     ctx.stroke()
     ctx.restore()
   }
@@ -382,7 +383,6 @@ function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
 // ai swap/rotate code 
 
 let rotatingObject = null
-let wallPivot = null
 let obstacles = []
 let selectedObstacle = null
 let swapAnimation = null
@@ -400,14 +400,8 @@ function handleTouchstartToRotate() {
     return
   }
   let wallEnds = getWallEnds()
-  if (isClose(touch1, wallEnds.a, BALL_RADIUS)) {
-    rotatingObject = wall
-    wallPivot = wallEnds.b
-    return
-  }
   if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
     rotatingObject = wall
-    wallPivot = wallEnds.a
     return
   }
 }
@@ -433,12 +427,13 @@ function handleTouchmoveToRotate(touch2) {
     let dy = touch2.yPos - cannon.yPos
     cannon.angle = Math.atan2(-dx, dy)
   }
-  if (rotatingObject === wall && wallPivot) {
-    let dx = touch2.xPos - wallPivot.xPos
-    let dy = touch2.yPos - wallPivot.yPos
+  if (rotatingObject === wall) {
+    let pivot = getWallEnds().a
+    let dx = touch2.xPos - pivot.xPos
+    let dy = touch2.yPos - pivot.yPos
     wall.angle = Math.atan2(dy, dx)
-    wall.xPos = wallPivot.xPos + Math.cos(wall.angle) * WALL_WIDTH / 2
-    wall.yPos = wallPivot.yPos + Math.sin(wall.angle) * WALL_WIDTH / 2
+    wall.xPos = pivot.xPos + Math.cos(wall.angle) * WALL_WIDTH / 2
+    wall.yPos = pivot.yPos + Math.sin(wall.angle) * WALL_WIDTH / 2
   }
 }
 
@@ -453,8 +448,14 @@ function getWallEnds() {
   let dirX = Math.cos(wall.angle)
   let dirY = Math.sin(wall.angle)
   return {
-    a: { xPos: wall.xPos - WALL_WIDTH / 2 * dirX, yPos: wall.yPos - WALL_WIDTH / 2 * dirY },
-    b: { xPos: wall.xPos + WALL_WIDTH / 2 * dirX, yPos: wall.yPos + WALL_WIDTH / 2 * dirY }
+    a: { 
+      xPos: wall.xPos - WALL_WIDTH / 2 * dirX, 
+      yPos: wall.yPos - WALL_WIDTH / 2 * dirY 
+    },
+    b: { 
+      xPos: wall.xPos + WALL_WIDTH / 2 * dirX, 
+      yPos: wall.yPos + WALL_WIDTH / 2 * dirY 
+    }
   }
 }
 
