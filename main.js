@@ -5,22 +5,26 @@ const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
 const BALL_RADIUS = window.innerWidth / 20
 const FLING_DIVISOR = 8
+const FRICTION = .99
+const MIN_SPEED = 1
 const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
-const WALL_WIDTH = BALL_RADIUS * 5
+const WALL_LENGTH = BALL_RADIUS * 5
+const CANNON_BOOST = 1.15
 
 let canvas;
 let ctx;
 let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
 let goal = { xPos: 0, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
-let puddle = { xPos: 0, yPos: 0, isEnabled: true }
-let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 } }
-let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_WIDTH }
+let puddle = { xPos: 0, yPos: 0 }
+let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
+let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_LENGTH }
 let key = { xPos: 0, yPos: 0, isEnabled: true }
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
 let spawnedObstacles = []
+let isMinSpeedEnforced = true
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -45,9 +49,10 @@ function generateLevel() {
   spawnObstacle(wormhole.a)
   spawnObstacle(wormhole.b)
   spawnObstacle(wall)
-  wall.length = WALL_WIDTH
+  wall.length = WALL_LENGTH
   spawnObstacle(key)
   key.isEnabled = true
+  isMinSpeedEnforced = false
 }
 
 function spawnBall() {
@@ -94,6 +99,7 @@ function spawnObstacle(obstacle) {
 function resetLevel() {
   ball = { xPos: ball.spawn.xPos, yPos: ball.spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: ball.spawn }
   key.isEnabled = true
+  isMinSpeedEnforced = false
 }
 
 function handleTouchstart(e) {
@@ -120,6 +126,7 @@ function handleTouchmove(e) {
 function handleTouchend() {
   ball.isBeingFlung = false
   rotatingObject = null
+  isMinSpeedEnforced = true
 }
 
 function loopGame() {
@@ -133,6 +140,12 @@ function loopGame() {
 function moveBall() {
   ball.xPos += ball.xVel
   ball.yPos += ball.yVel
+  ball.xVel *= FRICTION
+  ball.yVel *= FRICTION
+  let speed = Math.hypot(ball.xVel, ball.yVel)
+  if (isMinSpeedEnforced && speed < MIN_SPEED && !isClose(ball, puddle, BALL_RADIUS * 2)) {
+    resetLevel()
+  }
 }
 
 function handleCollision() {
@@ -163,9 +176,9 @@ function handleCollisionWithGoal() {
 
 function handleCollisionWithCannon() {
   if (isClose(ball, cannon, BALL_RADIUS * 2)) {
-    let speed = Math.sqrt(ball.xVel * ball.xVel + ball.yVel * ball.yVel)
-    ball.xVel = Math.sin(cannon.angle) * speed
-    ball.yVel = -Math.cos(cannon.angle) * speed
+    let speed = Math.hypot(ball.xVel, ball.yVel)
+    ball.xVel = Math.sin(cannon.angle) * speed * CANNON_BOOST
+    ball.yVel = -Math.cos(cannon.angle) * speed * CANNON_BOOST
   }
 }
 
