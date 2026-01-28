@@ -14,8 +14,8 @@ let ctx;
 let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
 let goal = { xPos: 0, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
-let puddle = { xPos: 0, yPos: 0 }
-let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
+let puddle = { xPos: 0, yPos: 0, isEnabled: true }
+let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 } }
 let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_WIDTH }
 let key = { xPos: 0, yPos: 0, isEnabled: true }
 let touch1 = { xPos: 0, yPos: 0 }
@@ -170,7 +170,7 @@ function handleCollisionWithCannon() {
 }
 
 function handleCollisionWithPuddle() {
-  if (isClose(ball, puddle, BALL_RADIUS * 2)) {
+  if (!ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS)) {
     ball.xVel = 0
     ball.yVel = 0
   }
