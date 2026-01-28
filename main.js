@@ -5,7 +5,7 @@ const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
 const BALL_RADIUS = window.innerWidth / 20
 const FLING_DIVISOR = 8
-const GOAL_HEIGHT = BALL_RADIUS
+const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 100
@@ -14,8 +14,8 @@ const WEIGHTED_POOL_OF_BONUS_COUNTS = [1, 1, 1, 1, 1, 2, 2, 2, 3]
 let canvas;
 let ctx;
 let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
-let goal = { xPos: 0, yPos: 0 }
-let cannon = { xPos: 0, yPos: 0, angle: 0, isEnabled: true }
+let goal = { xPos: 0, yPos: 0, isEnabled: true}
+let cannon = { xPos: 0, yPos: 0, angle: 0, }
 let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
 let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_LENGTH }
@@ -171,13 +171,13 @@ function handleCollisionWithGoal() {
     ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
   ) {
     if (!key.isEnabled) {
-      generateLevel()
       score++
       if (bonus.length == 0) score *= multiplier
     } else {
       ball.yVel = Math.abs(ball.yVel)
       ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
     }
+    generateLevel()
   }
 }
 
@@ -299,12 +299,24 @@ function drawBall() {
 
 function drawGoal() {
   ctx.beginPath()
-  for (let i = 0; i < 2; i++) {
-    let half_goal_width = (i == 1 ? GOAL_WIDTH : -GOAL_WIDTH) / 2
-    ctx.rect(goal.xPos, goal.yPos, half_goal_width, GOAL_HEIGHT)
-  }
-  ctx.fillStyle = "grey"
-  ctx.fill()
+  ctx.moveTo(goal.xPos, goal.yPos)
+  ctx.lineTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos)
+  ctx.lineTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
+  ctx.moveTo(goal.xPos, goal.yPos)
+  ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos)
+  ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
+  ctx.lineWidth = 5
+  ctx.strokeStyle = "grey"
+  ctx.stroke()
+  ctx.closePath()
+
+  // ctx.beginPath()
+  // for (let i = 0; i < 2; i++) {
+  //   let half_goal_width = (i == 1 ? GOAL_WIDTH : -GOAL_WIDTH) / 2
+  //   ctx.rect(goal.xPos, goal.yPos, half_goal_width, GOAL_HEIGHT)
+  // }
+  // ctx.fillStyle = "grey"
+  // ctx.fill()
 }
 
 function drawCannon() {
@@ -391,7 +403,7 @@ function drawKey() {
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
-    ctx.lineWidth = GOAL_HEIGHT / 2
+    ctx.lineWidth = 3
     ctx.strokeStyle = color
     ctx.stroke()
     ctx.restore()
@@ -407,8 +419,8 @@ function drawBonus() {
 }
 
 function drawScore() {
-  ctx.font = `bold ${GOAL_HEIGHT * 1.5}px sans-serif`
-  ctx.fillStyle = "black"
+  ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
+  ctx.fillStyle = "grey"
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
   ctx.fillText(score, goal.xPos, goal.yPos + GOAL_HEIGHT / 2)
@@ -420,7 +432,6 @@ function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
     Math.abs(objectA.yPos - objectB.yPos) < threshold
   )
 }
-
 
 // ai swap/rotate code 
 
