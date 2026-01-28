@@ -11,9 +11,9 @@ const FLING_DIVISOR = 8
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
-const MAX_SPAWN_ATTEMPTS = 100
-const WEIGHTED_POOL_OF_BONUS_COUNTS = [1, 1, 1, 2, 2, 3]
-const MIN_SPACE_FOR_SPAWN = WALL_LENGTH * 1.5
+const MAX_SPAWN_ATTEMPTS = 10000
+const WEIGHTED_POOL_OF_BONUS_COUNTS = []//[1, 1, 1, 2, 2, 3]
+const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 
 let canvas;
 let ctx;
@@ -29,6 +29,7 @@ let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
 let multiplier = 0
 let placedObstacles = []
+let ballSpawnY = 0
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -75,7 +76,7 @@ function setBonus() {
 function spawnBall() {
   let spawn = {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
-    yPos: canvas.height - BALL_RADIUS
+    yPos: canvas.height - BALL_RADIUS * 3
   }
   ball = { xPos: spawn.xPos, yPos: spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: spawn }
 }
@@ -273,8 +274,8 @@ function handleCollisionWithEdge() {
   } else if (ball.xPos + BALL_RADIUS >= canvas.width) {
     ball.xPos = canvas.width - BALL_RADIUS
     ball.xVel = -ball.xVel
-  } else if (ball.yPos - BALL_RADIUS < 0) {
-    ball.yPos = BALL_RADIUS
+  } else if (ball.yPos - BALL_RADIUS < GOAL_HEIGHT) {
+    ball.yPos = GOAL_HEIGHT + BALL_RADIUS
     ball.yVel = -ball.yVel
   } else if (ball.yPos + BALL_RADIUS > canvas.height) {
     ball.yPos = canvas.height - BALL_RADIUS
@@ -317,9 +318,11 @@ function drawGoal() {
   ctx.moveTo(goal.xPos, goal.yPos)
   ctx.lineTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos)
   ctx.lineTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
+  ctx.lineTo(0, goal.yPos + GOAL_HEIGHT)
   ctx.moveTo(goal.xPos, goal.yPos)
   ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos)
   ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
+  ctx.lineTo(canvas.width, goal.yPos + GOAL_HEIGHT)
   ctx.lineWidth = 5
   ctx.strokeStyle = "grey"
   ctx.stroke()
@@ -426,11 +429,11 @@ function drawBonus() {
 }
 
 function drawScore() {
-  ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
-  ctx.fillStyle = "grey"
-  ctx.textAlign = "center"
-  ctx.textBaseline = "middle"
-  ctx.fillText(score, goal.xPos, goal.yPos + GOAL_HEIGHT / 2)
+  // ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
+  // ctx.fillStyle = "grey"
+  // ctx.textAlign = "center"
+  // ctx.textBaseline = "middle"
+  // ctx.fillText(score, canvas.width - BALL_RADIUS, GOAL_HEIGHT / 3)
 }
 
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
