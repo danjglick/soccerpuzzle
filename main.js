@@ -1,6 +1,8 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 // http://10.0.0.145:8080
 
+let isDevMode = true // ALWAYS SET THIS TO FALSE BEFORE PUSHING!!!!!!!!!
+
 const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
 const BALL_RADIUS = window.innerWidth / 20
@@ -52,6 +54,7 @@ function generateLevel() {
   spawnObstacle(wall)
   setBonus()
   for (let i = 0; i < bonus.length; i++) { spawnObstacle(bonus[i]) }
+  goal.isEnabled = true
   cannon.isEnabled = true
   wormhole.isEnabled = true
   key.isEnabled = true
@@ -123,6 +126,7 @@ function handleTouchstart(e) {
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
+  if (isDevMode) { ball.xPos = touch1.xPos; ball.yPos = touch1.yPos; key.isEnabled = false; isDevMode = false; return }
 }
 
 function handleTouchmove(e) {
@@ -165,19 +169,26 @@ function handleCollision() {
 }
 
 function handleCollisionWithGoal() {
-  if (
-    ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT &&
-    ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
-    ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
-  ) {
-    if (!key.isEnabled) {
-      score++
-      if (bonus.length == 0) score *= multiplier
-    } else {
-      ball.yVel = Math.abs(ball.yVel)
-      ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
+  if (goal.isEnabled) {
+    if (
+      ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT &&
+      ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
+      ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
+    ) {
+      if (!key.isEnabled) {
+        ball.xPos = goal.xPos
+        ball.yPos = goal.yPos - BALL_RADIUS
+        ball.xVel = 0
+        ball.yVel = 0
+        score++
+        goal.isEnabled = false
+        setTimeout(generateLevel, 1000)
+        if (bonus.length == 0) score *= multiplier
+      } else {
+        ball.yVel = Math.abs(ball.yVel)
+        ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
+      }
     }
-    generateLevel()
   }
 }
 
@@ -309,18 +320,10 @@ function drawGoal() {
   ctx.strokeStyle = "grey"
   ctx.stroke()
   ctx.closePath()
-
-  // ctx.beginPath()
-  // for (let i = 0; i < 2; i++) {
-  //   let half_goal_width = (i == 1 ? GOAL_WIDTH : -GOAL_WIDTH) / 2
-  //   ctx.rect(goal.xPos, goal.yPos, half_goal_width, GOAL_HEIGHT)
-  // }
-  // ctx.fillStyle = "grey"
-  // ctx.fill()
 }
 
 function drawCannon() {
-  let color = cannon.isEnabled ?  "red" : "black"
+  let color = "red"
   ctx.save()
   ctx.translate(cannon.xPos, cannon.yPos)
   ctx.rotate(cannon.angle)
@@ -354,7 +357,7 @@ function drawPuddle() {
 }
 
 function drawWormhole() {
-  let color = wormhole.isEnabled ? "purple" : "black"
+  let color = "purple"
   for (let node of Object.values(wormhole)) {
     ctx.beginPath()
     ctx.arc(node.xPos, node.yPos, BALL_RADIUS, 0, 2 * Math.PI)
@@ -414,7 +417,7 @@ function drawBonus() {
   for (let i = 0; i < bonus.length; i++) {
     ctx.font = `bold ${BALL_RADIUS}px sans-serif`
     ctx.fillStyle = "green"
-    ctx.fillText(`${multiplier}x`, bonus[i].xPos, bonus[i].yPos)
+    ctx.fillText(`${multiplier}X`, bonus[i].xPos, bonus[i].yPos)
   }
 }
 
