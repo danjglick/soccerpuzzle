@@ -4,7 +4,7 @@
 const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
 const BALL_RADIUS = window.innerWidth / 20
-const FLING_DIVISOR = 4
+const FLING_DIVISOR = 8
 const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_WIDTH = BALL_RADIUS * 5
@@ -16,7 +16,7 @@ let goal = { xPos: 0, yPos: 0 }
 let cannon = { xPos: 0, yPos: 0, angle: 0 }
 let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
-let wall = { xPos: 0, yPos: 0, angle: 0 }
+let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_WIDTH }
 let key = { xPos: 0, yPos: 0, isEnabled: true }
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
@@ -32,6 +32,7 @@ function initialize() {
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
   generateLevel()
+  loopGame()
 }
 
 function generateLevel() {
@@ -44,9 +45,9 @@ function generateLevel() {
   spawnObstacle(wormhole.a)
   spawnObstacle(wormhole.b)
   spawnObstacle(wall)
+  wall.length = WALL_WIDTH
   spawnObstacle(key)
   key.isEnabled = true
-  loopGame()
 }
 
 function spawnBall() {
@@ -145,17 +146,17 @@ function handleCollision() {
 }
 
 function handleCollisionWithGoal() {
-  if (!key.isEnabled) {
-    if (
-      ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT &&
-      ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
-      ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
-    ) {
+  if (
+    ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT &&
+    ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
+    ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
+  ) {
+    if (!key.isEnabled) {
       score++
       generateLevel()
-      return
     } else {
-      ball.yVel = -ball.yVel
+      ball.yVel = Math.abs(ball.yVel)
+      ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
     }
   }
 }
@@ -194,18 +195,16 @@ function handleCollisionWithWormhole() {
 function handleCollisionWithWall() {
   let dirX = Math.cos(wall.angle)
   let dirY = Math.sin(wall.angle)
-  let startX = wall.xPos - WALL_WIDTH / 2 * dirX
-  let startY = wall.yPos - WALL_WIDTH / 2 * dirY
-  let toStartX = ball.xPos - startX
-  let toStartY = ball.yPos - startY
-  let projection = Math.max(0, Math.min(WALL_WIDTH, toStartX * dirX + toStartY * dirY))
-  let closestX = startX + projection * dirX
-  let closestY = startY + projection * dirY
+  let toWallX = ball.xPos - wall.xPos
+  let toWallY = ball.yPos - wall.yPos
+  let projection = Math.max(0, Math.min(wall.length, toWallX * dirX + toWallY * dirY))
+  let closestX = wall.xPos + projection * dirX
+  let closestY = wall.yPos + projection * dirY
   let toClosestX = ball.xPos - closestX
   let toClosestY = ball.yPos - closestY
   let distance = Math.sqrt(toClosestX * toClosestX + toClosestY * toClosestY)
   let threshold = BALL_RADIUS + BALL_RADIUS / 8
-  if (distance < threshold) {
+  if (distance < threshold && distance > 0.01) {
     let normalX = toClosestX / distance
     let normalY = toClosestY / distance
     let dot = ball.xVel * normalX + ball.yVel * normalY
@@ -337,10 +336,14 @@ function drawWall() {
   ctx.lineWidth = BALL_RADIUS / 4
   ctx.strokeStyle = color
   ctx.stroke()
+  ctx.save()
+  ctx.translate(ends.a.xPos, ends.a.yPos)
+  ctx.rotate(wall.angle)
   ctx.beginPath()
-  ctx.arc(ends.a.xPos, ends.a.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.rect(-BALL_RADIUS / 2, -BALL_RADIUS / 2, BALL_RADIUS, BALL_RADIUS)
   ctx.fillStyle = color
   ctx.fill()
+  ctx.restore()
   ctx.beginPath()
   ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
   ctx.fillStyle = color
@@ -428,12 +431,10 @@ function handleTouchmoveToRotate(touch2) {
     cannon.angle = Math.atan2(-dx, dy)
   }
   if (rotatingObject === wall) {
-    let pivot = getWallEnds().a
-    let dx = touch2.xPos - pivot.xPos
-    let dy = touch2.yPos - pivot.yPos
+    let dx = touch2.xPos - wall.xPos
+    let dy = touch2.yPos - wall.yPos
     wall.angle = Math.atan2(dy, dx)
-    wall.xPos = pivot.xPos + Math.cos(wall.angle) * WALL_WIDTH / 2
-    wall.yPos = pivot.yPos + Math.sin(wall.angle) * WALL_WIDTH / 2
+    wall.length = Math.sqrt(dx * dx + dy * dy)
   }
 }
 
@@ -449,12 +450,12 @@ function getWallEnds() {
   let dirY = Math.sin(wall.angle)
   return {
     a: { 
-      xPos: wall.xPos - WALL_WIDTH / 2 * dirX, 
-      yPos: wall.yPos - WALL_WIDTH / 2 * dirY 
+      xPos: wall.xPos, 
+      yPos: wall.yPos 
     },
     b: { 
-      xPos: wall.xPos + WALL_WIDTH / 2 * dirX, 
-      yPos: wall.yPos + WALL_WIDTH / 2 * dirY 
+      xPos: wall.xPos + wall.length * dirX, 
+      yPos: wall.yPos + wall.length * dirY 
     }
   }
 }
