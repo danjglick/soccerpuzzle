@@ -8,6 +8,7 @@ const FLING_DIVISOR = 8
 const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
+const MAX_SPAWN_ATTEMPTS = 10000
 
 let canvas;
 let ctx;
@@ -20,7 +21,7 @@ let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_LENGTH }
 let key = { xPos: 0, yPos: 0, isEnabled: true }
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
-let spawnedObstacles = []
+let placedObstacles = []
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -38,7 +39,7 @@ function initialize() {
 function generateLevel() {
   spawnBall()
   spawnGoal()
-  spawnedObstacles = []
+  placedObstacles = []
   initializeSwapData()
   spawnObstacle(cannon)
   spawnObstacle(puddle)
@@ -71,12 +72,22 @@ function spawnObstacle(obstacle) {
   let obstacleMinY = goal.yPos + GOAL_HEIGHT + BALL_RADIUS * 2
   let obstacleMaxY = ball.spawn.yPos - BALL_RADIUS * 2
   let minDistance = BALL_RADIUS * 2.5
-  let maxAttempts = 100
+  let maxAttempts = MAX_SPAWN_ATTEMPTS
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     obstacle.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
     obstacle.yPos = obstacleMinY + (obstacleMaxY - obstacleMinY) * Math.random()
+    if ('angle' in obstacle) {
+      obstacle.angle = Math.random() * 2 * Math.PI
+    }
+    if (obstacle === wall) {
+      let endB = getWallEnds().b
+      if (endB.xPos < BALL_RADIUS * 2 || endB.xPos > canvas.width - BALL_RADIUS * 2 ||
+          endB.yPos < BALL_RADIUS * 4 || endB.yPos > canvas.height - BALL_RADIUS * 4) {
+        continue
+      }
+    }
     let overlaps = false
-    for (let placed of spawnedObstacles) {
+    for (let placed of placedObstacles) {
       let dx = obstacle.xPos - placed.xPos
       let dy = obstacle.yPos - placed.yPos
       let distance = Math.sqrt(dx * dx + dy * dy)
@@ -87,10 +98,7 @@ function spawnObstacle(obstacle) {
     }
     if (!overlaps) break
   } 
-  spawnedObstacles.push({ xPos: obstacle.xPos, yPos: obstacle.yPos })
-  if ('angle' in obstacle) {
-    obstacle.angle = Math.random() * 2 * Math.PI
-  }
+  placedObstacles.push({ xPos: obstacle.xPos, yPos: obstacle.yPos })
 }
 
 function handleTouchstart(e) {
@@ -238,13 +246,13 @@ function handleCollisionWithEdge() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  drawBall()
   drawGoal()
   drawCannon()
   drawPuddle()
   drawWormhole()
   drawWall()
   drawKey()
+  drawBall()
   drawScore()
   drawSelectionBorder()
 }
@@ -276,7 +284,6 @@ function drawGoal() {
 }
 
 function drawCannon() {
-  console.log(cannon.isEnabled)
   let color = cannon.isEnabled ?  "red" : "black"
   ctx.save()
   ctx.translate(cannon.xPos, cannon.yPos)
@@ -435,8 +442,7 @@ function handleTouchmoveToRotate(touch2) {
     let dy = touch2.yPos - wall.yPos
     wall.angle = Math.atan2(dy, dx)
     let wallLength = Math.sqrt(dx * dx + dy * dy)
-    wall.length = wallLength < WALL_LENGTH ? WALL_LENGTH : wallLength
-
+    wall.length = Math.max(WALL_LENGTH, wallLength)
   }
 }
 
