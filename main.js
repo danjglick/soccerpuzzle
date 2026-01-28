@@ -8,7 +8,8 @@ const FLING_DIVISOR = 8
 const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
-const MAX_SPAWN_ATTEMPTS = 10000
+const MAX_SPAWN_ATTEMPTS = 100
+const WEIGHTED_BONUS_COUNT_POOL = [1, 1, 1, 1, 1, 2, 2, 2, 3]
 
 let canvas;
 let ctx;
@@ -19,8 +20,10 @@ let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
 let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_LENGTH }
 let key = { xPos: 0, yPos: 0, isEnabled: true }
+let bonus = []
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
+let multiplier = 0
 let placedObstacles = []
 
 function initialize() {
@@ -47,10 +50,20 @@ function generateLevel() {
   spawnObstacle(wormhole.b)
   spawnObstacle(key)
   spawnObstacle(wall)
+  setBonus()
+  for (let i = 0; i < bonus.length; i++) { spawnObstacle(bonus[i]) }
   cannon.isEnabled = true
   wormhole.isEnabled = true
   key.isEnabled = true
   wall.length = WALL_LENGTH
+}
+
+function setBonus() {
+  let bonusCount = WEIGHTED_BONUS_COUNT_POOL[Math.floor(Math.random() * WEIGHTED_BONUS_COUNT_POOL.length)]
+  for (let i = 0; i < bonusCount; i++) {
+    bonus.push({ xPos: 0, yPos: 0})
+  }
+  multiplier = bonusCount + 1
 }
 
 function spawnBall() {
@@ -71,7 +84,7 @@ function spawnGoal() {
 function spawnObstacle(obstacle) {
   let obstacleMinY = goal.yPos + GOAL_HEIGHT + BALL_RADIUS * 2
   let obstacleMaxY = ball.spawn.yPos - BALL_RADIUS * 2
-  let minDistance = BALL_RADIUS * 2.5
+  let minDistance = BALL_RADIUS * 3
   let maxAttempts = MAX_SPAWN_ATTEMPTS
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     obstacle.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
@@ -147,6 +160,7 @@ function handleCollision() {
   handleCollisionWithWormhole()
   handleCollisionWithWall()
   handleCollisionWithKey()
+  handleCollisionWithBonus()
   handleCollisionWithEdge()
 }
 
@@ -158,6 +172,7 @@ function handleCollisionWithGoal() {
   ) {
     if (!key.isEnabled) {
       score++
+      if (bonus.length == 0) { score *= multiplier }
       generateLevel()
     } else {
       ball.yVel = Math.abs(ball.yVel)
@@ -228,6 +243,14 @@ function handleCollisionWithKey() {
   }
 }
 
+function handleCollisionWithBonus() {
+  for (let i = 0; i < bonus.length; i++) {
+    if (isClose(ball, bonus[i], BALL_RADIUS + BALL_RADIUS / 2)) {
+      bonus.splice(i)
+    }
+  }
+}
+
 function handleCollisionWithEdge() {
   if (ball.xPos - BALL_RADIUS <= 0) {
     ball.xPos = BALL_RADIUS
@@ -253,6 +276,7 @@ function draw() {
   drawWall()
   drawKey()
   drawBall()
+  drawBonus()
   drawScore()
   drawSelectionBorder()
 }
@@ -371,6 +395,14 @@ function drawKey() {
     ctx.strokeStyle = color
     ctx.stroke()
     ctx.restore()
+  }
+}
+
+function drawBonus() {
+  for (let i = 0; i < bonus.length; i++) {
+    ctx.font = `bold ${BALL_RADIUS}px sans-serif`
+    ctx.fillStyle = "white"
+    ctx.fillText(`${multiplier}x`, bonus[i].xPos, bonus[i].yPos)
   }
 }
 
