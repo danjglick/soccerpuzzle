@@ -1,7 +1,8 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 // http://10.0.0.145:8080
 
-let isDevMode = true // ALWAYS SET THIS TO FALSE BEFORE PUSHING!!!!!!!!!
+let isDevMode = true
+let cheatCodeCount = 0
 
 const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
@@ -11,7 +12,8 @@ const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 100
-const WEIGHTED_POOL_OF_BONUS_COUNTS = [1, 1, 1, 1, 1, 2, 2, 2, 3]
+const WEIGHTED_POOL_OF_BONUS_COUNTS = [1, 1, 1, 2, 2, 3]
+const MIN_SPACE_FOR_SPAWN = WALL_LENGTH * 1.5
 
 let canvas;
 let ctx;
@@ -62,6 +64,7 @@ function generateLevel() {
 }
 
 function setBonus() {
+  bonus = []
   let bonusCount = WEIGHTED_POOL_OF_BONUS_COUNTS[Math.floor(Math.random() * WEIGHTED_POOL_OF_BONUS_COUNTS.length)]
   for (let i = 0; i < bonusCount; i++) {
     bonus.push({ xPos: 0, yPos: 0})
@@ -87,7 +90,7 @@ function spawnGoal() {
 function spawnObstacle(obstacle) {
   let obstacleMinY = goal.yPos + GOAL_HEIGHT + BALL_RADIUS * 2
   let obstacleMaxY = ball.spawn.yPos - BALL_RADIUS * 2
-  let minDistance = BALL_RADIUS * 3
+  let minDistance = MIN_SPACE_FOR_SPAWN
   let maxAttempts = MAX_SPAWN_ATTEMPTS
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     obstacle.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
@@ -126,7 +129,7 @@ function handleTouchstart(e) {
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  if (isDevMode) { ball.xPos = touch1.xPos; ball.yPos = touch1.yPos; key.isEnabled = false; isDevMode = false; return }
+  if (isDevMode && isClose(touch1, key, BALL_RADIUS)) { cheatCodeCount++; if (cheatCodeCount > 4) key.isEnabled = false; return }
 }
 
 function handleTouchmove(e) {
@@ -257,7 +260,7 @@ function handleCollisionWithKey() {
 function handleCollisionWithBonus() {
   for (let i = 0; i < bonus.length; i++) {
     if (isClose(ball, bonus[i], BALL_RADIUS + BALL_RADIUS / 2)) {
-      bonus.splice(i)
+      bonus.splice(i, 1)
     }
   }
 }
