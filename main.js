@@ -171,9 +171,13 @@ function handleCollisionWithGoal() {
     ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
   ) {
     if (!key.isEnabled) {
-      score++
-      if (bonus.length == 0) { score *= multiplier }
       generateLevel()
+      if (bonus.length == 0) { 
+        let newScore = score * multiplier
+        score = newScore > 0 ? newScore : multiplier
+      } else {
+        score++
+      }
     } else {
       ball.yVel = Math.abs(ball.yVel)
       ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
