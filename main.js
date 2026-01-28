@@ -9,7 +9,7 @@ const GOAL_HEIGHT = BALL_RADIUS
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 100
-const WEIGHTED_BONUS_COUNT_POOL = [1, 1, 1, 1, 1, 2, 2, 2, 3]
+const WEIGHTED_POOL_OF_BONUS_COUNTS = [1, 1, 1, 1, 1, 2, 2, 2, 3]
 
 let canvas;
 let ctx;
@@ -59,7 +59,7 @@ function generateLevel() {
 }
 
 function setBonus() {
-  let bonusCount = WEIGHTED_BONUS_COUNT_POOL[Math.floor(Math.random() * WEIGHTED_BONUS_COUNT_POOL.length)]
+  let bonusCount = WEIGHTED_POOL_OF_BONUS_COUNTS[Math.floor(Math.random() * WEIGHTED_POOL_OF_BONUS_COUNTS.length)]
   for (let i = 0; i < bonusCount; i++) {
     bonus.push({ xPos: 0, yPos: 0})
   }
@@ -172,12 +172,8 @@ function handleCollisionWithGoal() {
   ) {
     if (!key.isEnabled) {
       generateLevel()
-      if (bonus.length == 0) { 
-        let newScore = score * multiplier
-        score = newScore > 0 ? newScore : multiplier
-      } else {
-        score++
-      }
+      score++
+      if (bonus.length == 0) score *= multiplier
     } else {
       ball.yVel = Math.abs(ball.yVel)
       ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
@@ -542,5 +538,3 @@ function updateSwapAnimation() {
     swapAnimation = null
   }
 }
-
-
