@@ -41,18 +41,12 @@ function initialize() {
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
-  setupKeys()
   generateLevel()
   loopGame()
 }
 
-function setupKeys() {
-  for (let i = 0; i < KEY_COUNT; i++) {
-    keys.push({ xPos: 0, yPos: 0, isGot: false })
-  }
-}
-
 function generateLevel() {
+  setKeys()
   score++
   spawnBall()
   spawnGoal()
@@ -72,6 +66,12 @@ function generateLevel() {
   for (let i = 0; i < KEY_COUNT; i++) { keys[i].isGot = false}
   goal.isLocked = true
   wall.length = WALL_LENGTH
+}
+
+function setKeys() {
+  for (let i = 0; i < KEY_COUNT; i++) {
+    keys.push({ xPos: 0, yPos: 0, isGot: false })
+  }
 }
 
 function setBonus() {
@@ -140,7 +140,7 @@ function handleTouchstart(e) {
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS)) { taps++; if (taps >= TAPS_TO_ACTIVATE_CHEAT) { goal.isLocked = false; bonus = []; } return }
+  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { taps++; if (taps >= TAPS_TO_ACTIVATE_CHEAT) { goal.isLocked = false; bonus = [] } return }
 }
 
 function handleTouchmove(e) {
@@ -264,12 +264,12 @@ function handleCollisionWithWall() {
 
 function handleCollisionWithKey() {
   for (let i = 0; i < KEY_COUNT; i++) {
-    if (isClose(ball, keys[i], BALL_RADIUS + BALL_RADIUS / 2)) {
+    if (keys[i] && isClose(ball, keys[i], BALL_RADIUS + BALL_RADIUS / 2)) {
       keys[i].isGot = true
-      keys.splice[i]
+      keys.splice(i, 1)
     }
   }
-  if (keys.length == 0 ) {
+  if (keys.length == 0) {
     goal.isLocked = false
   }
 }
@@ -421,14 +421,14 @@ function drawWall() {
 function drawKeys() {
   let color = "orange"
   for (let i = 0; i < KEY_COUNT; i++) {
-    if (!keys[i].isGot) {
+    if (keys[i]) {
       ctx.beginPath()
       ctx.arc(keys[i].xPos, keys[i].yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
       ctx.fillStyle = color
       ctx.fill() 
     }
   }
-  if (keys.length > 0) {
+  if (goal.isLocked) {
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
