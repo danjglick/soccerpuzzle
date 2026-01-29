@@ -1,6 +1,6 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
-const TAPS_TO_ACTIVATE_CHEAT = 5
+const TAPS_TO_ACTIVATE_CHEAT = 3
 let taps = 0
 // http://10.0.0.145:8080
 
@@ -15,22 +15,24 @@ const MAX_SPAWN_ATTEMPTS = 10000
 const WEIGHTED_POOL_OF_BONUS_COUNTS = [1]
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const KEY_COUNT = 1
+const SCURRY_SPEED = .005
 
 let canvas;
 let ctx;
 let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
 let goal = { xPos: 0, yPos: 0, isEnabled: true, isLocked: true }
-let cannon = { xPos: 0, yPos: 0, angle: 0, }
-let puddle = { xPos: 0, yPos: 0 }
-let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
-let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_LENGTH }
+let cannon = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, angle: 0, isEnabled: true, isHidden: false }
+let puddle = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isEnabled: true, isHidden: false }
+let wormhole = { a: { xPos: 0, yPos: 0, xVel: 0, yVel: 0 }, b: { xPos: 0, yPos: 0, xVel: 0, yVel: 0 }, isEnabled: true, isHidden: false }
+let wall = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, angle: 0, length: WALL_LENGTH, isEnabled: true, isHidden: false }
 let keys = []
 let bonus = []
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
 let multiplier = 1
 let placedObstacles = []
-let ballSpawnY = 0
+let scurryObstacles = [cannon, puddle, wormhole.a, wormhole.b, wall]
+let isScurryOff = false
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -62,10 +64,19 @@ function generateLevel() {
   for (let i = 0; i < bonus.length; i++) { spawnObstacle(bonus[i]) }
   goal.isEnabled = true
   cannon.isEnabled = true
+  cannon.isHidden = false
   wormhole.isEnabled = true
+  wormhole.isHidden = false
+  puddle.isEnabled = true
+  puddle.isHidden = false
+  wall.isEnabled = true
+  wall.isHidden = false
+  isScurryOff = false
   for (let i = 0; i < KEY_COUNT; i++) { keys[i].isGot = false}
   goal.isLocked = true
   wall.length = WALL_LENGTH
+  taps = 0
+  for (let i = 0; i < scurryObstacles.length; i++) { scurryObstacles[i].xVel = 0; scurryObstacles[i].yVel = 0 }
 }
 
 function setKeys() {
@@ -78,7 +89,7 @@ function setBonus() {
   bonus = []
   let bonusCount = WEIGHTED_POOL_OF_BONUS_COUNTS[Math.floor(Math.random() * WEIGHTED_POOL_OF_BONUS_COUNTS.length)]
   for (let i = 0; i < bonusCount; i++) {
-    bonus.push({ xPos: 0, yPos: 0})
+    bonus.push({ xPos: 0, yPos: 0, xVel: 0, yVel: 0 })
   }
   multiplier = bonusCount + 1
 }
@@ -169,6 +180,16 @@ function loopGame() {
 function moveBall() {
   ball.xPos += ball.xVel
   ball.yPos += ball.yVel
+  for (let i = 0; i < scurryObstacles.length; i++) {
+    let obstacle = scurryObstacles[i]
+    obstacle.xPos += obstacle.xVel
+    obstacle.yPos += obstacle.yVel
+  }
+  if (isScurryOff && ball.yPos + BALL_RADIUS >= canvas.height - BALL_RADIUS) {
+    ball.yPos = canvas.height - BALL_RADIUS
+    ball.xVel = 0
+    ball.yVel = 0  
+  }
 }
 
 function handleCollision() {
@@ -179,6 +200,7 @@ function handleCollision() {
   handleCollisionWithWall()
   handleCollisionWithKey()
   handleCollisionWithBonus()
+  handleCollisionWithScurryingObstacle()
   handleCollisionWithEdge()
 }
 
@@ -190,23 +212,45 @@ function handleCollisionWithGoal() {
       ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
     ) {
       if (!goal.isLocked) {
+        scurryOff()
         if (bonus.length > 0) {
           alert("Goal!")
         } else {
           alert("Goal + Bonus!")
         } 
-        // let bonusText = bonus.length == 0 ? `x${multiplier}` : ""
-        // alert(`Goal ${bonusText}!`)
-        // let newPoints = 1
-        // if (bonus.length == 0) { newPoints *= multiplier }
-        // score += newPoints
-        // goal.isEnabled = false
-        setTimeout(generateLevel, 1000)
+        setTimeout(generateLevel, 5000)
       } else {
         ball.yVel = Math.abs(ball.yVel)
         ball.yPos = goal.yPos + GOAL_HEIGHT + BALL_RADIUS
       }
     }
+  }
+}
+
+function handleCollisionWithScurryingObstacle() {
+  if (isScurryOff) {
+    if (isClose(ball, cannon, BALL_RADIUS * 2)) cannon.isHidden = true
+    if (isClose(ball, puddle, BALL_RADIUS * 2)) puddle.isHidden = true
+    if (isClose(ball, wall, BALL_RADIUS * 2)) wall.isHidden = true
+    if (isClose(ball, wormhole.a, BALL_RADIUS * 2) || isClose(ball, wormhole.b, BALL_RADIUS * 2)) wormhole.isHidden = true
+  }
+}
+
+function scurryOff() {
+  isScurryOff = true
+  goal.isEnabled = false
+  cannon.isEnabled = false
+  puddle.isEnabled = false
+  wormhole.isEnabled = false
+  wall.isEnabled = false
+  for (let i = 0; i < scurryObstacles.length; i++) {
+    let obstacle = scurryObstacles[i]
+    let scurrySpot = { xPos: Math.random() * canvas.width, yPos: Math.random() * canvas.height / 2 }
+    while (isClose(scurrySpot, obstacle, WALL_LENGTH * 2)) {
+      scurrySpot = { xPos: Math.random() * canvas.width, yPos: Math.random() * canvas.height / 2 }  
+    }
+    obstacle.xVel = (scurrySpot.xPos - obstacle.xPos) * SCURRY_SPEED
+    obstacle.yVel = (scurrySpot.yPos - obstacle.yPos) * SCURRY_SPEED
   }
 }
 
@@ -221,7 +265,7 @@ function handleCollisionWithCannon() {
 }
 
 function handleCollisionWithPuddle() {
-  if (!ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS * 2)) {
+  if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS * 2)) {
     ball.xVel = 0
     ball.yVel = 0
   }
@@ -244,25 +288,27 @@ function handleCollisionWithWormhole() {
 }
 
 function handleCollisionWithWall() {
-  let dirX = Math.cos(wall.angle)
-  let dirY = Math.sin(wall.angle)
-  let toWallX = ball.xPos - wall.xPos
-  let toWallY = ball.yPos - wall.yPos
-  let projection = Math.max(0, Math.min(wall.length, toWallX * dirX + toWallY * dirY))
-  let closestX = wall.xPos + projection * dirX
-  let closestY = wall.yPos + projection * dirY
-  let toClosestX = ball.xPos - closestX
-  let toClosestY = ball.yPos - closestY
-  let distance = Math.sqrt(toClosestX * toClosestX + toClosestY * toClosestY)
-  let threshold = BALL_RADIUS + BALL_RADIUS / 8
-  if (distance < threshold && distance > 0.01) {
-    let normalX = toClosestX / distance
-    let normalY = toClosestY / distance
-    let dot = ball.xVel * normalX + ball.yVel * normalY
-    ball.xVel -= 2 * dot * normalX
-    ball.yVel -= 2 * dot * normalY
-    ball.xPos = closestX + normalX * threshold
-    ball.yPos = closestY + normalY * threshold
+  if (wall.isEnabled) {
+    let dirX = Math.cos(wall.angle)
+    let dirY = Math.sin(wall.angle)
+    let toWallX = ball.xPos - wall.xPos
+    let toWallY = ball.yPos - wall.yPos
+    let projection = Math.max(0, Math.min(wall.length, toWallX * dirX + toWallY * dirY))
+    let closestX = wall.xPos + projection * dirX
+    let closestY = wall.yPos + projection * dirY
+    let toClosestX = ball.xPos - closestX
+    let toClosestY = ball.yPos - closestY
+    let distance = Math.sqrt(toClosestX * toClosestX + toClosestY * toClosestY)
+    let threshold = BALL_RADIUS + BALL_RADIUS / 8
+    if (distance < threshold && distance > 0.01) {
+      let normalX = toClosestX / distance
+      let normalY = toClosestY / distance
+      let dot = ball.xVel * normalX + ball.yVel * normalY
+      ball.xVel -= 2 * dot * normalX
+      ball.yVel -= 2 * dot * normalY
+      ball.xPos = closestX + normalX * threshold
+      ball.yPos = closestY + normalY * threshold
+    }
   }
 }
 
@@ -349,77 +395,85 @@ function drawGoal() {
 }
 
 function drawCannon() {
-  let color = "red"
-  ctx.save()
-  ctx.translate(cannon.xPos, cannon.yPos)
-  ctx.rotate(cannon.angle)
-  ctx.beginPath()
-  ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = color
-  ctx.fill()
-  ctx.fillStyle = "black"
-  ctx.beginPath()
-  ctx.moveTo(0, -BALL_RADIUS * 0.6)
-  ctx.lineTo(BALL_RADIUS * 0.4, BALL_RADIUS * 0.2)
-  ctx.lineTo(BALL_RADIUS * 0.15, BALL_RADIUS * 0.2)
-  ctx.lineTo(BALL_RADIUS * 0.15, BALL_RADIUS * 0.6)
-  ctx.lineTo(-BALL_RADIUS * 0.15, BALL_RADIUS * 0.6)
-  ctx.lineTo(-BALL_RADIUS * 0.15, BALL_RADIUS * 0.2)
-  ctx.lineTo(-BALL_RADIUS * 0.4, BALL_RADIUS * 0.2)
-  ctx.closePath()
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(0, BALL_RADIUS * 1.5, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = color
-  ctx.fill()
-  ctx.restore()
+  if (!cannon.isHidden) {
+    let color = "red"
+    ctx.save()
+    ctx.translate(cannon.xPos, cannon.yPos)
+    ctx.rotate(cannon.angle)
+    ctx.beginPath()
+    ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.fillStyle = "black"
+    ctx.beginPath()
+    ctx.moveTo(0, -BALL_RADIUS * 0.6)
+    ctx.lineTo(BALL_RADIUS * 0.4, BALL_RADIUS * 0.2)
+    ctx.lineTo(BALL_RADIUS * 0.15, BALL_RADIUS * 0.2)
+    ctx.lineTo(BALL_RADIUS * 0.15, BALL_RADIUS * 0.6)
+    ctx.lineTo(-BALL_RADIUS * 0.15, BALL_RADIUS * 0.6)
+    ctx.lineTo(-BALL_RADIUS * 0.15, BALL_RADIUS * 0.2)
+    ctx.lineTo(-BALL_RADIUS * 0.4, BALL_RADIUS * 0.2)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(0, BALL_RADIUS * 1.5, BALL_RADIUS / 2, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.restore()
+  }
 }
 
 function drawPuddle() {
-  ctx.beginPath()
-  ctx.arc(puddle.xPos, puddle.yPos, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = "blue"
-  ctx.fill()
+  if (!puddle.isHidden) {
+    ctx.beginPath()
+    ctx.arc(puddle.xPos, puddle.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+    ctx.fillStyle = "blue"
+    ctx.fill()
+  }
 }
 
 function drawWormhole() {
-  let color = "purple"
-  for (let node of Object.values(wormhole)) {
+  if (!wormhole.isHidden) {
+    let color = "purple"
+    for (let node of Object.values(wormhole)) {
+      ctx.beginPath()
+      ctx.arc(node.xPos, node.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+      ctx.fillStyle = color
+      ctx.fill()
+    }
     ctx.beginPath()
-    ctx.arc(node.xPos, node.yPos, BALL_RADIUS, 0, 2 * Math.PI)
-    ctx.fillStyle = color
-    ctx.fill()
+    ctx.moveTo(wormhole.a.xPos, wormhole.a.yPos)
+    ctx.lineTo(wormhole.b.xPos, wormhole.b.yPos)
+    ctx.lineWidth = 1
+    ctx.strokeStyle = color
+    ctx.stroke()
+    ctx.closePath()
   }
-  ctx.beginPath()
-  ctx.moveTo(wormhole.a.xPos, wormhole.a.yPos)
-  ctx.lineTo(wormhole.b.xPos, wormhole.b.yPos)
-  ctx.lineWidth = 1
-  ctx.strokeStyle = color
-  ctx.stroke()
-  ctx.closePath()
 }
 
 function drawWall() {
-  let color = "#654321"
-  let ends = getWallEnds()
-  ctx.beginPath()
-  ctx.moveTo(ends.a.xPos, ends.a.yPos)
-  ctx.lineTo(ends.b.xPos, ends.b.yPos)
-  ctx.lineWidth = BALL_RADIUS / 4
-  ctx.strokeStyle = color
-  ctx.stroke()
-  ctx.save()
-  ctx.translate(ends.a.xPos, ends.a.yPos)
-  ctx.rotate(wall.angle)
-  ctx.beginPath()
-  ctx.rect(-BALL_RADIUS / 2, -BALL_RADIUS / 2, BALL_RADIUS, BALL_RADIUS)
-  ctx.fillStyle = color
-  ctx.fill()
-  ctx.restore()
-  ctx.beginPath()
-  ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-  ctx.fillStyle = color
-  ctx.fill()
+  if (!wall.isHidden) {
+    let color = "#654321"
+    let ends = getWallEnds()
+    ctx.beginPath()
+    ctx.moveTo(ends.a.xPos, ends.a.yPos)
+    ctx.lineTo(ends.b.xPos, ends.b.yPos)
+    ctx.lineWidth = BALL_RADIUS / 4
+    ctx.strokeStyle = color
+    ctx.stroke()
+    ctx.save()
+    ctx.translate(ends.a.xPos, ends.a.yPos)
+    ctx.rotate(wall.angle)
+    ctx.beginPath()
+    ctx.rect(-BALL_RADIUS / 2, -BALL_RADIUS / 2, BALL_RADIUS, BALL_RADIUS)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.restore()
+    ctx.beginPath()
+    ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
+  }
 }
 
 function drawKeys() {
