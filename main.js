@@ -1,8 +1,8 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
+let isCheatEnabled = true
+const KEY_TAPS_TO_ACTIVATE_CHEAT = 5
+let keyTaps = 0
 // http://10.0.0.145:8080
-
-let isDevMode = true
-let cheatCodeCount = 0
 
 const FPS = 60
 const MS_PER_FRAME = 1000 / FPS
@@ -62,6 +62,7 @@ function generateLevel() {
   wormhole.isEnabled = true
   key.isEnabled = true
   wall.length = WALL_LENGTH
+  keyTaps = 0
 }
 
 function setBonus() {
@@ -76,7 +77,7 @@ function setBonus() {
 function spawnBall() {
   let spawn = {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
-    yPos: canvas.height - BALL_RADIUS * 3
+    yPos: canvas.height - BALL_RADIUS
   }
   ball = { xPos: spawn.xPos, yPos: spawn.yPos, xVel: 0, yVel: 0, isBeingFlung: false, spawn: spawn }
 }
@@ -130,7 +131,7 @@ function handleTouchstart(e) {
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  if (isDevMode && isClose(touch1, key, BALL_RADIUS)) { cheatCodeCount++; if (cheatCodeCount > 4) { key.isEnabled = false; bonus = []; } return }
+  if (isCheatEnabled && isClose(touch1, key, BALL_RADIUS)) { keyTaps++; if (keyTaps >= KEY_TAPS_TO_ACTIVATE_CHEAT) { key.isEnabled = false; bonus = []; } return }
 }
 
 function handleTouchmove(e) {
