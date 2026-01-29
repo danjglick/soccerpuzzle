@@ -12,7 +12,7 @@ const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 10000
-const WEIGHTED_POOL_OF_BONUS_COUNTS = []//[1, 1, 1, 2, 2, 3]
+const WEIGHTED_POOL_OF_BONUS_COUNTS = [0]//[1, 1, 1, 2, 2, 3]
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 
 let canvas;
@@ -27,7 +27,7 @@ let key = { xPos: 0, yPos: 0, isEnabled: true }
 let bonus = []
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
-let multiplier = 0
+let multiplier = 1
 let placedObstacles = []
 let ballSpawnY = 0
 
@@ -181,12 +181,9 @@ function handleCollisionWithGoal() {
       ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
     ) {
       if (!key.isEnabled) {
-        ball.xPos = goal.xPos
-        ball.yPos = goal.yPos - BALL_RADIUS
-        ball.xVel = 0
-        ball.yVel = 0
+        alert("Goal!")
         let newPoints = 1
-        if (bonus.length == 0) newPoints *= multiplier
+        if (bonus.length == 0) { newPoints *= multiplier }
         score += newPoints
         goal.isEnabled = false
         setTimeout(generateLevel, 1000)
@@ -294,7 +291,7 @@ function draw() {
   drawKey()
   drawBall()
   drawBonus()
-  drawScore()
+  //drawScore()
   drawSelectionBorder()
 }
 
@@ -430,11 +427,11 @@ function drawBonus() {
 }
 
 function drawScore() {
-  // ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
-  // ctx.fillStyle = "grey"
-  // ctx.textAlign = "center"
-  // ctx.textBaseline = "middle"
-  // ctx.fillText(score, canvas.width - BALL_RADIUS, GOAL_HEIGHT / 3)
+  ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
+  ctx.fillStyle = "grey"
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  ctx.fillText(score, canvas.width - BALL_RADIUS, GOAL_HEIGHT / 3)
 }
 
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
