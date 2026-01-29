@@ -15,7 +15,7 @@ const MAX_SPAWN_ATTEMPTS = 10000
 const WEIGHTED_POOL_OF_BONUS_COUNTS = [1]
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const KEY_COUNT = 1
-const SCURRY_SPEED = .005
+const SCURRY_SPEED = .0025
 
 let canvas;
 let ctx;
@@ -33,6 +33,7 @@ let multiplier = 1
 let placedObstacles = []
 let scurryObstacles = [cannon, puddle, wormhole.a, wormhole.b, wall]
 let isScurryOff = false
+let canHitScurryingObstacles = false
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -72,6 +73,7 @@ function generateLevel() {
   wall.isEnabled = true
   wall.isHidden = false
   isScurryOff = false
+  canHitScurryingObstacles = false
   for (let i = 0; i < KEY_COUNT; i++) { keys[i].isGot = false}
   goal.isLocked = true
   wall.length = WALL_LENGTH
@@ -229,28 +231,52 @@ function handleCollisionWithGoal() {
 
 function handleCollisionWithScurryingObstacle() {
   if (isScurryOff) {
-    if (isClose(ball, cannon, BALL_RADIUS * 2)) cannon.isHidden = true
-    if (isClose(ball, puddle, BALL_RADIUS * 2)) puddle.isHidden = true
-    if (isClose(ball, wall, BALL_RADIUS * 2)) wall.isHidden = true
-    if (isClose(ball, wormhole.a, BALL_RADIUS * 2) || isClose(ball, wormhole.b, BALL_RADIUS * 2)) wormhole.isHidden = true
+    if (cannon.yPos < -BALL_RADIUS * 2 || (canHitScurryingObstacles && isClose(ball, cannon, BALL_RADIUS * 2))) cannon.isHidden = true
+    if (puddle.yPos < -BALL_RADIUS * 2 || (canHitScurryingObstacles && isClose(ball, puddle, BALL_RADIUS * 2))) puddle.isHidden = true
+    if (wall.yPos < -BALL_RADIUS * 2 || (canHitScurryingObstacles && isClose(ball, wall, BALL_RADIUS * 2))) wall.isHidden = true
+    if ((wormhole.a.yPos < -BALL_RADIUS * 2 && wormhole.b.yPos < -BALL_RADIUS * 2) || 
+        (canHitScurryingObstacles && (isClose(ball, wormhole.a, BALL_RADIUS * 2) || isClose(ball, wormhole.b, BALL_RADIUS * 2)))) wormhole.isHidden = true
   }
 }
 
 function scurryOff() {
   isScurryOff = true
+  canHitScurryingObstacles = false
+  setTimeout(() => canHitScurryingObstacles = true, 500)
   goal.isEnabled = false
   cannon.isEnabled = false
   puddle.isEnabled = false
   wormhole.isEnabled = false
   wall.isEnabled = false
+  let exitSpots = [
+    { xPos: -BALL_RADIUS * 3, yPos: -BALL_RADIUS * 3 },
+    { xPos: canvas.width + BALL_RADIUS * 3, yPos: -BALL_RADIUS * 3 },
+    { xPos: canvas.width / 4, yPos: -BALL_RADIUS * 3 },
+    { xPos: canvas.width * 3 / 4, yPos: -BALL_RADIUS * 3 },
+    { xPos: canvas.width / 2, yPos: -BALL_RADIUS * 3 }
+  ]
+  let usedSpots = []
   for (let i = 0; i < scurryObstacles.length; i++) {
     let obstacle = scurryObstacles[i]
-    let scurrySpot = { xPos: Math.random() * canvas.width, yPos: Math.random() * canvas.height / 2 }
-    while (isClose(scurrySpot, obstacle, WALL_LENGTH * 2)) {
-      scurrySpot = { xPos: Math.random() * canvas.width, yPos: Math.random() * canvas.height / 2 }  
+    let bestSpot = null
+    let bestScore = -Infinity
+    for (let spot of exitSpots) {
+      if (usedSpots.includes(spot)) continue
+      let distFromObstacle = Math.hypot(spot.xPos - obstacle.xPos, spot.yPos - obstacle.yPos)
+      let minDistFromUsed = Infinity
+      for (let used of usedSpots) {
+        let d = Math.hypot(spot.xPos - used.xPos, spot.yPos - used.yPos)
+        if (d < minDistFromUsed) minDistFromUsed = d
+      }
+      let score = distFromObstacle + (usedSpots.length > 0 ? minDistFromUsed : 0)
+      if (score > bestScore) {
+        bestScore = score
+        bestSpot = spot
+      }
     }
-    obstacle.xVel = (scurrySpot.xPos - obstacle.xPos) * SCURRY_SPEED
-    obstacle.yVel = (scurrySpot.yPos - obstacle.yPos) * SCURRY_SPEED
+    usedSpots.push(bestSpot)
+    obstacle.xVel = (bestSpot.xPos - obstacle.xPos) * SCURRY_SPEED
+    obstacle.yVel = (bestSpot.yPos - obstacle.yPos) * SCURRY_SPEED
   }
 }
 
