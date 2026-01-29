@@ -14,7 +14,7 @@ const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 10000
 const WEIGHTED_POOL_OF_BONUS_COUNTS = [0]//[1, 1, 1, 2, 2, 3]
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
-const KEY_COUNT = 2
+const KEY_COUNT = 1
 
 let canvas;
 let ctx;
