@@ -12,7 +12,7 @@ const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 10000
-const WEIGHTED_POOL_OF_BONUS_COUNTS = [0, 0, 1, 1, 1, 2, 2, 3]
+const WEIGHTED_POOL_OF_BONUS_COUNTS = [1]
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const KEY_COUNT = 1
 
@@ -190,7 +190,11 @@ function handleCollisionWithGoal() {
       ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
     ) {
       if (!goal.isLocked) {
-        alert("Goal!")
+        if (bonus.length > 0) {
+          alert("Goal!")
+        } else {
+          alert("Goal + Bonus!")
+        } 
         // let bonusText = bonus.length == 0 ? `x${multiplier}` : ""
         // alert(`Goal ${bonusText}!`)
         // let newPoints = 1
