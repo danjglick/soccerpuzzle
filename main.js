@@ -12,7 +12,7 @@ const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 10000
-const WEIGHTED_POOL_OF_BONUS_COUNTS = [0, 1, 2, 3]
+const WEIGHTED_POOL_OF_BONUS_COUNTS = [1, 1, 1, 2, 2, 3]
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const KEY_COUNT = 1
 
@@ -441,9 +441,26 @@ function drawKeys() {
 
 function drawBonus() {
   for (let i = 0; i < bonus.length; i++) {
-    ctx.font = `bold ${BALL_RADIUS}px sans-serif`
+    let b = bonus[i]
     ctx.fillStyle = "green"
-    ctx.fillText(`${multiplier}X`, bonus[i].xPos, bonus[i].yPos)
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    let starPoints = 5
+    let outerRadius = BALL_RADIUS * .75
+    let innerRadius = BALL_RADIUS * .25
+    for (let j = 0; j < starPoints * 2; j++) {
+      let angle = (Math.PI * j) / starPoints - Math.PI / 2
+      let r = (j % 2 === 0) ? outerRadius : innerRadius
+      let px = b.xPos + Math.cos(angle) * r
+      let py = b.yPos + Math.sin(angle) * r
+      if (j === 0) {
+        ctx.moveTo(px, py)
+      } else {
+        ctx.lineTo(px, py)
+      }
+    }
+    ctx.closePath()
+    ctx.fill()
   }
 }
 
