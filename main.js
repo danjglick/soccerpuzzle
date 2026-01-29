@@ -1,7 +1,7 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
-const KEY_TAPS_TO_ACTIVATE_CHEAT = 5
-let keyTaps = 0
+const TAPS_TO_ACTIVATE_CHEAT = 5
+let taps = 0
 // http://10.0.0.145:8080
 
 const FPS = 60
@@ -14,16 +14,17 @@ const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 10000
 const WEIGHTED_POOL_OF_BONUS_COUNTS = [0]//[1, 1, 1, 2, 2, 3]
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
+const KEY_COUNT = 2
 
 let canvas;
 let ctx;
 let ball = { xPos: 0, yPos: 0, xVel: 0, yVel: 0, isBeingFlung: false, spawn: { xPos: 0, yPos: 0 } }
-let goal = { xPos: 0, yPos: 0, isEnabled: true}
+let goal = { xPos: 0, yPos: 0, isEnabled: true, isLocked: true }
 let cannon = { xPos: 0, yPos: 0, angle: 0, }
 let puddle = { xPos: 0, yPos: 0 }
 let wormhole = { a: { xPos: 0, yPos: 0 }, b: { xPos: 0, yPos: 0 }, isEnabled: true }
 let wall = { xPos: 0, yPos: 0, angle: 0, length: WALL_LENGTH }
-let key = { xPos: 0, yPos: 0, isEnabled: true }
+let keys = []
 let bonus = []
 let touch1 = { xPos: 0, yPos: 0 }
 let score = 0
@@ -40,11 +41,19 @@ function initialize() {
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
+  setupKeys()
   generateLevel()
   loopGame()
 }
 
+function setupKeys() {
+  for (let i = 0; i < KEY_COUNT; i++) {
+    keys.push({ xPos: 0, yPos: 0, isGot: false })
+  }
+}
+
 function generateLevel() {
+  score++
   spawnBall()
   spawnGoal()
   placedObstacles = []
@@ -53,16 +62,16 @@ function generateLevel() {
   spawnObstacle(puddle)
   spawnObstacle(wormhole.a)
   spawnObstacle(wormhole.b)
-  spawnObstacle(key)
+  for (let i = 0; i < KEY_COUNT; i++) { spawnObstacle(keys[i]) }
   spawnObstacle(wall)
   setBonus()
   for (let i = 0; i < bonus.length; i++) { spawnObstacle(bonus[i]) }
   goal.isEnabled = true
   cannon.isEnabled = true
   wormhole.isEnabled = true
-  key.isEnabled = true
+  for (let i = 0; i < KEY_COUNT; i++) { keys[i].isGot = false}
+  goal.isLocked = true
   wall.length = WALL_LENGTH
-  keyTaps = 0
 }
 
 function setBonus() {
@@ -131,7 +140,7 @@ function handleTouchstart(e) {
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  if (isCheatEnabled && isClose(touch1, key, BALL_RADIUS)) { keyTaps++; if (keyTaps >= KEY_TAPS_TO_ACTIVATE_CHEAT) { key.isEnabled = false; bonus = []; } return }
+  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS)) { taps++; if (taps >= TAPS_TO_ACTIVATE_CHEAT) { goal.isLocked = false; bonus = []; } return }
 }
 
 function handleTouchmove(e) {
@@ -180,12 +189,14 @@ function handleCollisionWithGoal() {
       ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
       ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
     ) {
-      if (!key.isEnabled) {
+      if (!goal.isLocked) {
         alert("Goal!")
-        let newPoints = 1
-        if (bonus.length == 0) { newPoints *= multiplier }
-        score += newPoints
-        goal.isEnabled = false
+        // let bonusText = bonus.length == 0 ? `x${multiplier}` : ""
+        // alert(`Goal ${bonusText}!`)
+        // let newPoints = 1
+        // if (bonus.length == 0) { newPoints *= multiplier }
+        // score += newPoints
+        // goal.isEnabled = false
         setTimeout(generateLevel, 1000)
       } else {
         ball.yVel = Math.abs(ball.yVel)
@@ -252,8 +263,14 @@ function handleCollisionWithWall() {
 }
 
 function handleCollisionWithKey() {
-  if (isClose(ball, key, BALL_RADIUS + BALL_RADIUS / 2)) {
-    key.isEnabled = false
+  for (let i = 0; i < KEY_COUNT; i++) {
+    if (isClose(ball, keys[i], BALL_RADIUS + BALL_RADIUS / 2)) {
+      keys[i].isGot = true
+      keys.splice[i]
+    }
+  }
+  if (keys.length == 0 ) {
+    goal.isLocked = false
   }
 }
 
@@ -283,15 +300,15 @@ function handleCollisionWithEdge() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  //drawScore()
   drawGoal()
   drawCannon()
   drawPuddle()
   drawWormhole()
   drawWall()
-  drawKey()
+  drawKeys()
   drawBall()
   drawBonus()
-  //drawScore()
   drawSelectionBorder()
 }
 
@@ -401,13 +418,17 @@ function drawWall() {
   ctx.fill()
 }
 
-function drawKey() {
-  if (key.isEnabled) {
-    let color = "orange"
-    ctx.beginPath()
-    ctx.arc(key.xPos, key.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-    ctx.fillStyle = color
-    ctx.fill()
+function drawKeys() {
+  let color = "orange"
+  for (let i = 0; i < KEY_COUNT; i++) {
+    if (!keys[i].isGot) {
+      ctx.beginPath()
+      ctx.arc(keys[i].xPos, keys[i].yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+      ctx.fillStyle = color
+      ctx.fill() 
+    }
+  }
+  if (keys.length > 0) {
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
@@ -428,10 +449,10 @@ function drawBonus() {
 
 function drawScore() {
   ctx.font = `bold ${GOAL_HEIGHT}px sans-serif`
-  ctx.fillStyle = "grey"
+  ctx.fillStyle = "green"
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
-  ctx.fillText(score, canvas.width - BALL_RADIUS, GOAL_HEIGHT / 3)
+  ctx.fillText(`level ${score}`, canvas.width - GOAL_WIDTH / 1.4, GOAL_HEIGHT / 3)
 }
 
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
