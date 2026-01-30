@@ -5,90 +5,37 @@ let cheatTaps = 0
 // http://10.0.0.145:8080
 
 const FPS = 60
-const MS_PER_FRAME = 1000 / FPS
 const BALL_RADIUS = window.innerWidth / 20
-const FLING_DIVISOR = 8
+const BALL_SPEED_DIVISOR = 5
+const BALL_RESTITUTION = .85
+const BALL_MAX_SPEED = 30
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 10000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
-const SCURRY_SPEED = .005
+const SCURRY_SPEED_DIVISOR = 250
+const SCURRY_SPOTS = [{ xPos: 0, yPos: window.innerHeight / 2 }, { xPos: 0, yPos: window.innerHeight * .25 }, { xPos: 0, yPos: 0 }, { xPos: window.innerWidth, yPos: 0 }, { xPos: window.innerWidth, yPos: window.innerHeight * .25 }, { xPos: window.innerWidth, yPos: window.innerHeight / 2 }]
+const COOLDOWN_DURATION = 3000
+const SWAP_DURATION = 20
 
 let canvas;
 let ctx;
-let ball = { 
-  xPos: 0, 
-  yPos: 0, 
-  xVel: 0, 
-  yVel: 0, 
-  isBeingFlung: false, 
-  spawn: { 
-    xPos: 0, 
-    yPos: 0 
-  } 
-}
-let goal = { 
-  xPos: 0, 
-  yPos: 0, 
-  isEnabled: true 
-}
-let cannon = { 
-  xPos: 0, 
-  yPos: 0, 
-  xVel: 0, 
-  yVel: 0, 
-  angle: 0, 
-  isEnabled: true 
-}
-let puddle = { 
-  xPos: 0, 
-  yPos: 0, 
-  xVel: 0, 
-  yVel: 0, 
-  isEnabled: true 
-}
-let wormhole = { 
-  a: { 
-    xPos: 0, 
-    yPos: 0, 
-    xVel: 0, 
-    yVel: 0 
-  }, 
-  b: { 
-    xPos: 0, 
-    yPos: 0, 
-    xVel: 0, 
-    yVel: 0 
-  }, 
-  isEnabled: true 
-}
-let wall = { 
-  xPos: 0, 
-  yPos: 0, 
-  xVel: 0, 
-  yVel: 0, 
-  angle: 0, 
-  length: WALL_LENGTH, 
-  isEnabled: true 
-}
-let key = { 
-  xPos: 0, 
-  yPos: 0, 
-  isEnabled: true
-}
-let bonus = { 
-  xPos: 0, 
-  yPos: 0, 
-  isEnabled: true 
-}
-let touch1 = { 
-  xPos: 0, 
-  yPos: 0 
-}
-let placedObstacles = []
-let scurryObstacles = [cannon, puddle, wormhole.a, wormhole.b, wall]
-let isScurryOff = false
+let ball = {}
+let goal = {}
+let cannon = {}
+let puddle = {}
+let wall = {}
+let wormholeA = {}
+let wormholeB = {}
+let key = {}
+let bonus = {}
+let touch1 = { xPos: 0, yPos: 0 }
+let spawnedObstacles = []
+let rotatingObstacle = {}
+let selectedObstacle = {}
+let isScurryMode = false
+let scurryingObstacles = [cannon, puddle, wall, wormholeA, wormholeB, bonus]
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -106,20 +53,16 @@ function initialize() {
 function generateLevel() {
   spawnBall()
   spawnGoal()
-  placedObstacles = []
+  spawnedObstacles = []
   spawnObstacle(cannon)
   spawnObstacle(puddle)
-  spawnObstacle(wormhole.a)
-  spawnObstacle(wormhole.b)
   spawnObstacle(wall)
+  spawnObstacle(wormholeA)
+  spawnObstacle(wormholeB)
   spawnObstacle(key)
   spawnObstacle(bonus)
-  initializeSwapData()
-  isScurryOff = false
-  for (let i = 0; i < scurryObstacles.length; i++) { 
-    scurryObstacles[i].xVel = 0 
-    scurryObstacles[i].yVel = 0 
-  }
+  selectedObstacle = null
+  isScurryMode = false
   cheatTaps = 0
 }
 
@@ -135,19 +78,24 @@ function spawnBall() {
     yVel: 0, 
     isBeingFlung: false, 
     spawn: spawn 
-  }
+}
 }
 
 function spawnGoal() {
-  goal.xPos = GOAL_WIDTH + (canvas.width - 2 * GOAL_WIDTH) * Math.random()
-  goal.yPos = 0
+  goal = {
+    xPos: GOAL_WIDTH + (canvas.width - 2 * GOAL_WIDTH) * Math.random(),
+    yPos: 0,
+    isEnabled: true 
+  }
 }
 
 function spawnObstacle(obstacle) {
   obstacle.isEnabled = true
   obstacle.angle = Math.random() * 2 * Math.PI
+  obstacle.xVel = 0
+  obstacle.yVel = 0
   let minY = goal.yPos + GOAL_HEIGHT + BALL_RADIUS * 2
-  let maxY = ball.spawn.yPos - BALL_RADIUS * 2
+  let maxY = ball.spawn.yPos - BALL_RADIUS * 4
   let minDistance = MIN_SPACE_FOR_SPAWN
   let maxAttempts = MAX_SPAWN_ATTEMPTS
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -156,17 +104,16 @@ function spawnObstacle(obstacle) {
     if (obstacle === wall) {
       obstacle.length = WALL_LENGTH
       let endB = getWallEnds().b
-      if (
-        endB.xPos < BALL_RADIUS * 2 || 
-        endB.xPos > canvas.width - BALL_RADIUS * 2 ||
-        endB.yPos < BALL_RADIUS * 4 || 
-        endB.yPos > canvas.height - BALL_RADIUS * 4
-      ) {
+      let isEndBOutsideLeftFrame = endB.xPos < BALL_RADIUS * 2
+      let isEndBOutsideRightFrame = endB.xPos > canvas.width - BALL_RADIUS * 2
+      let isEndBOutsideTopFrame = endB.yPos < BALL_RADIUS * 4
+      let isEndBOutsideBottomFrame = endB.yPos > canvas.height - BALL_RADIUS * 4
+      if (isEndBOutsideLeftFrame || isEndBOutsideRightFrame || isEndBOutsideTopFrame || isEndBOutsideBottomFrame) {
         continue
       }
     }
     let overlaps = false
-    for (let placed of placedObstacles) {
+    for (let placed of spawnedObstacles) {
       let dx = obstacle.xPos - placed.xPos
       let dy = obstacle.yPos - placed.yPos
       let distance = Math.sqrt(dx * dx + dy * dy)
@@ -177,9 +124,9 @@ function spawnObstacle(obstacle) {
     }
     if (!overlaps) break
   } 
-  placedObstacles.push({ 
+  spawnedObstacles.push({ 
     xPos: obstacle.xPos, 
-    yPos: obstacle.yPos
+    yPos: obstacle.yPos 
   })
 }
 
@@ -192,7 +139,7 @@ function handleTouchstart(e) {
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  handleCheat()
+  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { cheatTaps++; if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { key.isEnabled = false; } }
 }
 
 function handleTouchmove(e) {
@@ -202,46 +149,51 @@ function handleTouchmove(e) {
     yPos: e.touches[0].clientY 
   }
   if (ball.isBeingFlung) {
-    ball.xVel = (touch2.xPos - touch1.xPos) / FLING_DIVISOR
-    ball.yVel = (touch2.yPos - touch1.yPos) / FLING_DIVISOR
+    ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
+    ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
   }
   handleTouchmoveToRotate(touch2)
 }
 
 function handleTouchend() {
   ball.isBeingFlung = false
-  rotatingObject = null
+  rotatingObstacle = null
 }
 
 function loopGame() {
   moveBall()
-  updateSwapAnimation()
+  moveObstacles()
   handleCollision()
   draw()
-  setTimeout(loopGame, MS_PER_FRAME)
+  setTimeout(loopGame, getMSPerFrame())
 }
 
 function moveBall() {
   ball.xPos += ball.xVel
   ball.yPos += ball.yVel
-  for (let i = 0; i < scurryObstacles.length; i++) {
-    let obstacle = scurryObstacles[i]
+  let isBallAtBottomEdge = ball.yPos + BALL_RADIUS >= canvas.height - BALL_RADIUS
+  let speed = Math.hypot(ball.xVel, ball.yVel)
+  if (isBallAtBottomEdge && speed < 19 && !ball.isBeingFlung) {
+    ball.xVel = 0
+    ball.yVel = 0
+  }
+}
+
+function moveObstacles() {
+  for (let i = 0; i < scurryingObstacles.length; i++) {
+    let obstacle = scurryingObstacles[i]
     obstacle.xPos += obstacle.xVel
     obstacle.yPos += obstacle.yVel
   }
-  if (isScurryOff && ball.yPos + BALL_RADIUS >= canvas.height - BALL_RADIUS) {
-    ball.yPos = canvas.height - BALL_RADIUS
-    ball.xVel = 0
-    ball.yVel = 0  
-  }
+  updateSwapAnimation()
 }
 
 function handleCollision() {
   handleCollisionWithGoal()
   handleCollisionWithCannon()
   handleCollisionWithPuddle()
-  handleCollisionWithWormhole()
   handleCollisionWithWall()
+  handleCollisionWithWormhole()
   handleCollisionWithKey()
   handleCollisionWithBonus()
   handleCollisionWithScurryingObstacle()
@@ -249,53 +201,60 @@ function handleCollision() {
 }
 
 function handleCollisionWithGoal() {
-  if (
-    goal.isEnabled && !key.isEnabled &&
-    ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT &&
-    ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH &&
-    ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
-  ) {
-    scurryOff()
-    if (bonus.isEnabled) {
-      alert("Goal!")
-    } else {
-      alert("Goal + Bonus!")
+  if (goal.isEnabled && !key.isEnabled) {
+    let isBallPastGoalLine = ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT
+    let isBallInsideRightPost = ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH
+    let isBallInsideLeftPost = ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
+    if (isBallPastGoalLine && isBallInsideRightPost && isBallInsideLeftPost) {
+      if (bonus.isEnabled) {
+        alert("Goal!")
+      } else {
+        alert("Goal + Bonus!")
+      }
+      scurryObstacles()
+      setTimeout(generateLevel, 5000)
     }
-    setTimeout(generateLevel, 5000)
+  }
+}
+
+function scurryObstacles() {
+  isScurryMode = true
+  goal.isEnabled = false
+  let usedWaypoints = []
+  for (let i = 0; i < scurryingObstacles.length; i++) {
+    let obstacle = scurryingObstacles[i]
+    obstacle.isEnabled = false
+    let isObstacleInLeftHalf = obstacle.xPos < canvas.width / 2
+    let exitX = isObstacleInLeftHalf ? canvas.width : 0
+    let waypoint = null
+    let maxAttempts = 100
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      waypoint = {
+        xPos: exitX,
+        yPos: Math.random() * canvas.height * 0.7
+      }
+      let isTooClose = false
+      for (let j = 0; j < usedWaypoints.length; j++) {
+        if (isClose(waypoint, usedWaypoints[j], WALL_LENGTH)) {
+          isTooClose = true
+          break
+        }
+      }
+      if (!isTooClose) break
+    }
+    obstacle.xVel = (waypoint.xPos - obstacle.xPos) / SCURRY_SPEED_DIVISOR
+    obstacle.yVel = (waypoint.yPos - obstacle.yPos) / SCURRY_SPEED_DIVISOR
+    usedWaypoints.push(waypoint)
   }
 }
 
 function handleCollisionWithScurryingObstacle() {
-  if (isScurryOff) {
-    for (let i = 0; i < scurryObstacles.length; i++) {
-      if (isClose(scurryObstacles[i], ball, BALL_RADIUS * 2)) {
-        alert("hit!")
+  if (isScurryMode) {
+    for (let i = 0; i < scurryingObstacles.length; i++) {
+      if (isClose(scurryingObstacles[i], ball, BALL_RADIUS * 2)) {
+        //alert("hit!")
       } 
     }
-  }
-}
-
-function scurryOff() {
-  isScurryOff = true
-  goal.isEnabled = false
-  cannon.isEnabled = false
-  puddle.isEnabled = false
-  wormhole.isEnabled = false
-  wall.isEnabled = false
-  for (let i = 0; i < scurryObstacles.length; i++) {
-    let obstacle = scurryObstacles[i]
-    let scurrySpot = { 
-      xPos: Math.random() * canvas.width, 
-      yPos: Math.random() * canvas.height / 2 
-    }
-    while (isClose(scurrySpot, obstacle, WALL_LENGTH * 2)) {
-      scurrySpot = { 
-        xPos: Math.random() * canvas.width, 
-        yPos: Math.random() * canvas.height / 2 
-      }  
-    }
-    obstacle.xVel = (scurrySpot.xPos - obstacle.xPos) * SCURRY_SPEED
-    obstacle.yVel = (scurrySpot.yPos - obstacle.yPos) * SCURRY_SPEED
   }
 }
 
@@ -305,34 +264,14 @@ function handleCollisionWithCannon() {
     ball.xVel = Math.sin(cannon.angle) * speed
     ball.yVel = -Math.cos(cannon.angle) * speed
     cannon.isEnabled = false
-    setTimeout(() => cannon.isEnabled = true, 3000)
+    setTimeout(() => cannon.isEnabled = true, COOLDOWN_DURATION)
   }
 }
 
 function handleCollisionWithPuddle() {
-  if (
-    puddle.isEnabled &&
-    !ball.isBeingFlung &&
-    isClose(ball, puddle, BALL_RADIUS * 2
-  )) {
+  if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS * 2)) {
     ball.xVel = 0
     ball.yVel = 0
-  }
-}
-
-function handleCollisionWithWormhole() {
-  if (wormhole.isEnabled) {
-    if (isClose(ball, wormhole.a, BALL_RADIUS * 2)) {
-      ball.xPos = wormhole.b.xPos
-      ball.yPos = wormhole.b.yPos
-      wormhole.isEnabled = false
-      setTimeout(() => wormhole.isEnabled = true, 3000)
-    } else if (isClose(ball, wormhole.b, BALL_RADIUS * 2)) {
-      ball.xPos = wormhole.a.xPos
-      ball.yPos = wormhole.a.yPos
-      wormhole.isEnabled = false
-      setTimeout(() => wormhole.isEnabled = true, 3000)
-    }
   }
 }
 
@@ -361,6 +300,25 @@ function handleCollisionWithWall() {
   }
 }
 
+function handleCollisionWithWormhole() {
+  if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS * 2)) {
+    ball.xPos = wormholeB.xPos
+    ball.yPos = wormholeB.yPos
+    cooldownWormhole()
+  } else if (wormholeB.isEnabled && isClose(ball, wormholeB, BALL_RADIUS * 2)) {
+    ball.xPos = wormholeA.xPos
+    ball.yPos = wormholeA.yPos
+    cooldownWormhole()
+  }
+}
+
+function cooldownWormhole() {
+  wormholeA.isEnabled = false
+  wormholeB.isEnabled = false
+  setTimeout(() => wormholeA.isEnabled = true, COOLDOWN_DURATION)
+  setTimeout(() => wormholeB.isEnabled = true, COOLDOWN_DURATION)
+}
+
 function handleCollisionWithKey() {
   if (isClose(ball, key, BALL_RADIUS + BALL_RADIUS / 2)) {
     key.isEnabled = false
@@ -374,18 +332,22 @@ function handleCollisionWithBonus() {
 }
 
 function handleCollisionWithEdge() {
-  if (ball.xPos - BALL_RADIUS <= 0) {
+  let isBallAtLeftEdge = ball.xPos - BALL_RADIUS <= 0
+  let isBallAtRightEdge = ball.xPos + BALL_RADIUS >= canvas.width
+  let isBallAtTopEdge = ball.yPos - BALL_RADIUS < GOAL_HEIGHT
+  let isBallAtBottomEdge = ball.yPos + BALL_RADIUS > canvas.height
+  if (isBallAtLeftEdge) {
     ball.xPos = BALL_RADIUS
-    ball.xVel = -ball.xVel
-  } else if (ball.xPos + BALL_RADIUS >= canvas.width) {
+    ball.xVel = -ball.xVel * BALL_RESTITUTION
+  } else if (isBallAtRightEdge) {
     ball.xPos = canvas.width - BALL_RADIUS
-    ball.xVel = -ball.xVel
-  } else if (ball.yPos - BALL_RADIUS < GOAL_HEIGHT) {
+    ball.xVel = -ball.xVel * BALL_RESTITUTION
+  } else if (isBallAtTopEdge) {
     ball.yPos = GOAL_HEIGHT + BALL_RADIUS
-    ball.yVel = -ball.yVel
-  } else if (ball.yPos + BALL_RADIUS > canvas.height) {
+    ball.yVel = -ball.yVel * BALL_RESTITUTION
+  } else if (isBallAtBottomEdge) {
     ball.yPos = canvas.height - BALL_RADIUS
-    ball.yVel = -ball.yVel
+    ball.yVel = -ball.yVel * BALL_RESTITUTION
   }
 }
 
@@ -394,21 +356,12 @@ function draw() {
   drawGoal()
   drawCannon()
   drawPuddle()
-  drawWormhole()
   drawWall()
+  drawWormhole()
   drawKey()
-  drawBall()
   drawBonus()
+  drawBall()
   drawSelectionBorder()
-}
-
-function drawSelectionBorder() {
-  if (!selectedObstacle) return
-  ctx.beginPath()
-  ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
-  ctx.strokeStyle = "green"
-  ctx.lineWidth = 4
-  ctx.stroke()
 }
 
 function drawBall() {
@@ -468,23 +421,6 @@ function drawPuddle() {
   ctx.fill()
 }
 
-function drawWormhole() {
-  let color = "purple"
-  for (let node of Object.values(wormhole)) {
-    ctx.beginPath()
-    ctx.arc(node.xPos, node.yPos, BALL_RADIUS, 0, 2 * Math.PI)
-    ctx.fillStyle = color
-    ctx.fill()
-  }
-  ctx.beginPath()
-  ctx.moveTo(wormhole.a.xPos, wormhole.a.yPos)
-  ctx.lineTo(wormhole.b.xPos, wormhole.b.yPos)
-  ctx.lineWidth = 1
-  ctx.strokeStyle = color
-  ctx.stroke()
-  ctx.closePath()
-}
-
 function drawWall() {
   let color = "#654321"
   let ends = getWallEnds()
@@ -506,6 +442,23 @@ function drawWall() {
   ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
   ctx.fillStyle = color
   ctx.fill()
+}
+
+function drawWormhole() {
+  let color = "purple"
+  for (let wormhole of [wormholeA, wormholeB]) {
+    ctx.beginPath()
+    ctx.arc(wormhole.xPos, wormhole.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
+  }
+  ctx.beginPath()
+  ctx.moveTo(wormholeA.xPos, wormholeA.yPos)
+  ctx.lineTo(wormholeB.xPos, wormholeB.yPos)
+  ctx.lineWidth = 1
+  ctx.strokeStyle = color
+  ctx.stroke()
+  ctx.closePath()
 }
 
 function drawKey() {
@@ -549,6 +502,15 @@ function drawBonus() {
   }
 }
 
+function drawSelectionBorder() {
+  if (!selectedObstacle) return
+  ctx.beginPath()
+  ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
+  ctx.strokeStyle = "green"
+  ctx.lineWidth = 4
+  ctx.stroke()
+}
+
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   return(
     Math.abs(objectA.xPos - objectB.xPos) < threshold && 
@@ -556,38 +518,23 @@ function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   )
 }
 
-function handleCheat() {
-  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
-    cheatTaps++ 
-    if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { 
-      key.isEnabled = false; 
-      bonus.isEnabled = false
-    } 
-  }
+function getMSPerFrame() {
+  return 1000 / FPS
 }
 
 // ai swap/rotate code 
 
-let rotatingObject = null
-let obstacles = []
-let selectedObstacle = null
 let swapAnimation = null
-let SWAP_DURATION = 20
-
-function initializeSwapData() {
-  selectedObstacle = null
-  obstacles = [cannon, puddle, wormhole.a, wormhole.b, wall]
-}
 
 function handleTouchstartToRotate() {
   let cannonHandle = getCannonHandle()
   if (isClose(touch1, cannonHandle, BALL_RADIUS)) {
-    rotatingObject = cannon
+    rotatingObstacle = cannon
     return
   }
   let wallEnds = getWallEnds()
   if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
-    rotatingObject = wall
+    rotatingObstacle = wall
     return
   }
 }
@@ -608,12 +555,12 @@ function handleTouchstartToSwap() {
 }
 
 function handleTouchmoveToRotate(touch2) {
-  if (rotatingObject === cannon) {
+  if (rotatingObstacle === cannon) {
     let dx = touch2.xPos - cannon.xPos
     let dy = touch2.yPos - cannon.yPos
     cannon.angle = Math.atan2(-dx, dy)
   }
-  if (rotatingObject === wall) {
+  if (rotatingObstacle === wall) {
     let dx = touch2.xPos - wall.xPos
     let dy = touch2.yPos - wall.yPos
     wall.angle = Math.atan2(dy, dx)
@@ -645,7 +592,8 @@ function getWallEnds() {
 }
 
 function getTappedObstacle(touch) {
-  for (let obstacle of obstacles) {
+  let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB]
+  for (let obstacle of swappableObstacles) {
     if (isClose(touch, obstacle, BALL_RADIUS)) {
       return obstacle
     }
