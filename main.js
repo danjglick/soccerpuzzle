@@ -10,6 +10,7 @@ const BALL_SPEED_DIVISOR = 5
 const BALL_RESTITUTION = .85
 const BALL_MIN_SPEED = 15
 const BALL_MAX_SPEED = 30 // not currently used
+const BALL_FRICTION = 1
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
@@ -43,6 +44,19 @@ let playerScore = 0
 let enemyScore = 0
 let levelIndex = 0
 
+function handleCheatTap() {
+  let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
+  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
+    cheatTaps++ 
+    if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { 
+      for (let i = 0; i < obstacles.length; i++) { 
+        obstacles[i].isEnabled = false 
+      } 
+    }
+  }
+  puddle.isEnabled = true
+}
+
 function initialize() {
   canvas = document.getElementById('canvas')
   canvas.width = window.innerWidth
@@ -75,7 +89,7 @@ function generateLevel() {
 function spawnBall() {
   let spawn = {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
-    yPos: canvas.height - BALL_RADIUS
+    yPos: canvas.height - BALL_RADIUS * 2
   }
   ball = { 
     xPos: spawn.xPos, 
@@ -180,11 +194,12 @@ function loopGame() {
 
 function moveBall() {
   ball.xPos += ball.xVel
-  ball.yPos += ball.yVel
+  ball.yPos += ball.yVel 
   ball.angle += ball.xVel / BALL_RADIUS
-  let isBallAtBottomEdge = ball.yPos + BALL_RADIUS >= canvas.height - BALL_RADIUS
+  ball.xVel *= BALL_FRICTION
+  ball.yVel *= BALL_FRICTION
   let speed = Math.hypot(ball.xVel, ball.yVel)
-  if (isBallAtBottomEdge && speed < BALL_MIN_SPEED && !ball.isBeingFlung) {
+  if (speed < BALL_MIN_SPEED && !ball.isBeingFlung) {
     ball.xVel = 0
     ball.yVel = 0
   }
@@ -213,18 +228,18 @@ function handleCollision() {
 
 function handleGoal() {
   if (goal.isEnabled && !key.isEnabled) {
-    let isBallPastGoalLine = ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT
+    let isBallPastGoalLine = ball.yPos + BALL_RADIUS <= 0
     let isBallInsideRightPost = ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH
     let isBallInsideLeftPost = ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
     if (isBallPastGoalLine && isBallInsideRightPost && isBallInsideLeftPost) {
       goal.isEnabled = false
       ball.xVel = 0
       ball.yVel = 0
-      ball.yPos = 0
-      updateScore()
+      ball.yPos = GOAL_HEIGHT
+      incrementScore()
       let bonusText = ""
       if (!bonus.isEnabled) {
-        updateScore()
+        incrementScore()
         bonusText = getBonusText()
       }
       // do something
@@ -234,7 +249,7 @@ function handleGoal() {
   }
 }
 
-function updateScore(isPlayer = true, newPoints = 1) {
+function incrementScore(isPlayer = true, newPoints = 1) {
   if (isPlayer) {
     playerScore += newPoints
   } else {
@@ -366,13 +381,14 @@ function handleEdge() {
   let isBallAtRightEdge = ball.xPos + BALL_RADIUS >= canvas.width
   let isBallAtTopEdge = ball.yPos - BALL_RADIUS < GOAL_HEIGHT
   let isBallAtBottomEdge = ball.yPos + BALL_RADIUS > canvas.height
+  let isBallHorizontallyAlignedWithGoal = ball.xPos > goal.xPos - GOAL_WIDTH / 2 && ball.xPos < goal.xPos + GOAL_WIDTH / 2 
   if (isBallAtLeftEdge) {
     ball.xPos = BALL_RADIUS
     ball.xVel = -ball.xVel * BALL_RESTITUTION
   } else if (isBallAtRightEdge) {
     ball.xPos = canvas.width - BALL_RADIUS
     ball.xVel = -ball.xVel * BALL_RESTITUTION
-  } else if (isBallAtTopEdge) {
+  } else if (isBallAtTopEdge && !isBallHorizontallyAlignedWithGoal) {
     ball.yPos = GOAL_HEIGHT + BALL_RADIUS
     ball.yVel = -ball.yVel * BALL_RESTITUTION
   } else if (isBallAtBottomEdge) {
@@ -641,18 +657,6 @@ function getBonusText() {
 
 function getGoalText(bonusText) {
   return `You scored a goal ${bonusText}!`
-}
-
-function handleCheatTap() {
-  let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
-  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
-    cheatTaps++ 
-    if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { 
-      for (let i = 0; i < obstacles.length; i++) { 
-        obstacles[i].isEnabled = false 
-      } 
-    }
-  }
 }
 
 // ai swap/rotate code 
