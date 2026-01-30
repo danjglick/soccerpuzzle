@@ -16,8 +16,6 @@ const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const MAX_SPAWN_ATTEMPTS = 10000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
-const SCURRY_SPEED_DIVISOR = 250
-const SCURRY_SPOTS = [{ xPos: 0, yPos: window.innerHeight / 2 }, { xPos: 0, yPos: window.innerHeight * .25 }, { xPos: 0, yPos: 0 }, { xPos: window.innerWidth, yPos: 0 }, { xPos: window.innerWidth, yPos: window.innerHeight * .25 }, { xPos: window.innerWidth, yPos: window.innerHeight / 2 }]
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
 const POINTS_TO_WIN = 5
@@ -27,6 +25,7 @@ let canvas;
 let ctx;
 let ball = {}
 let goal = {}
+let ownGoal = {}
 let cannon = {}
 let puddle = {}
 let wall = {}
@@ -34,7 +33,9 @@ let wormholeA = {}
 let wormholeB = {}
 let key = {}
 let bonus = {}
-let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
+let enemy = {}
+let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus, enemy]
+let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB, enemy]
 let touch1 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
 let rotatingObstacle = {}
@@ -72,14 +73,9 @@ function initialize() {
 function generateLevel() {
   spawnBall()
   spawnGoal()
+  spawnOwnGoal()
   spawnedObstacles = []
-  spawnObstacle(cannon)
-  spawnObstacle(puddle)
-  spawnObstacle(wall)
-  spawnObstacle(wormholeA)
-  spawnObstacle(wormholeB)
-  spawnObstacle(key)
-  spawnObstacle(bonus)
+  for (let i = 0; i < obstacles.length; i++) spawnObstacle(obstacles[i])
   selectedObstacle = null
   cheatTaps = 0
 }
@@ -104,6 +100,14 @@ function spawnGoal() {
   goal = {
     xPos: GOAL_WIDTH + (canvas.width - 2 * GOAL_WIDTH) * Math.random(),
     yPos: 0,
+    isEnabled: true 
+  }
+}
+
+function spawnOwnGoal() {
+  ownGoal = {
+    xPos: goal.xPos,
+    yPos: canvas.height,
     isEnabled: true 
   }
 }
@@ -154,9 +158,6 @@ function handleTouchstart(e) {
   touch1.yPos = e.touches[0].clientY
   if (isClose(touch1, ball, BALL_RADIUS)) {
     ball.isBeingFlung = true
-    if (!goal.isEnabled) {
-      isScurryMode = true
-    }
     return
   }
   handleTouchstartToRotate()
@@ -347,6 +348,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawScore()
   drawGoal()
+  drawOwnGoal()
   if (!areObstaclesHidden) {
     drawCannon()
     drawPuddle()
@@ -354,9 +356,21 @@ function draw() {
     drawWormhole()
     drawKey()
     drawBonus()
+    drawEnemy()
   }
   drawBall()
   drawSelectionBorder()
+}
+
+function drawEnemy() {
+  ctx.beginPath()
+  ctx.moveTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
+  ctx.lineTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
+  ctx.moveTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
+  ctx.lineTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
+  ctx.lineWidth = 5
+  ctx.strokeStyle = "maroon"
+  ctx.stroke()
 }
 
 function drawScore() {
@@ -369,11 +383,8 @@ function drawScore() {
 function drawBall() {
   ctx.save()
   ctx.translate(ball.xPos, ball.yPos)
-  
-  // Save for rotation
   ctx.save()
   ctx.rotate(ball.angle)
-  
   ctx.beginPath()
   ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
   ctx.fillStyle = "white"
@@ -401,9 +412,7 @@ function drawBall() {
     ctx.lineTo(Math.cos(angle) * endRadius, Math.sin(angle) * endRadius)
     ctx.stroke()
   }
-  // Restore from rotation so the highlight stays static
   ctx.restore()
-
   let gradient = ctx.createRadialGradient(
     -BALL_RADIUS * 0.3, -BALL_RADIUS * 0.3, BALL_RADIUS * 0.1,
     0, 0, BALL_RADIUS
@@ -414,7 +423,6 @@ function drawBall() {
   ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
   ctx.fillStyle = gradient
   ctx.fill()
-  
   ctx.restore()
 }
 
@@ -462,6 +470,44 @@ function drawGoal() {
   ctx.strokeStyle = "grey"
   ctx.stroke()
   ctx.closePath()
+}
+
+function drawOwnGoal() {
+  ctx.beginPath()
+  ctx.moveTo(0, canvas.height - GOAL_HEIGHT / 2)
+  ctx.lineTo(ownGoal.xPos - GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
+  ctx.moveTo(ownGoal.xPos + GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
+  ctx.lineTo(canvas.width, canvas.height - GOAL_HEIGHT / 2)
+  ctx.lineWidth = 5
+  ctx.strokeStyle = "grey"
+  ctx.stroke()
+  let netSpacing = BALL_RADIUS / 3
+  let leftPost = ownGoal.xPos - GOAL_WIDTH / 2
+  let rightPost = ownGoal.xPos + GOAL_WIDTH / 2
+  let goalTop = canvas.height - GOAL_HEIGHT / 2
+  let goalBottom = canvas.height
+  ctx.strokeStyle = "#555"
+  ctx.lineWidth = 1.5
+  for (let x = leftPost; x <= rightPost; x += netSpacing) {
+    ctx.beginPath()
+    ctx.moveTo(x, goalTop)
+    ctx.lineTo(x, goalBottom)
+    ctx.stroke()
+  }
+  for (let y = goalTop; y <= goalBottom; y += netSpacing) {
+    ctx.beginPath()
+    ctx.moveTo(leftPost, y)
+    ctx.lineTo(rightPost, y)
+    ctx.stroke()
+  }
+  ctx.beginPath()
+  ctx.moveTo(ownGoal.xPos - GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
+  ctx.lineTo(ownGoal.xPos - GOAL_WIDTH / 2, canvas.height + 10)
+  ctx.moveTo(ownGoal.xPos + GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
+  ctx.lineTo(ownGoal.xPos + GOAL_WIDTH / 2, canvas.height + 10)
+  ctx.lineWidth = 5
+  ctx.strokeStyle = "grey"
+  ctx.stroke()
 }
 
 function drawCannon() {
@@ -677,7 +723,6 @@ function getWallEnds() {
 }
 
 function getTappedObstacle(touch) {
-  let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB]
   for (let obstacle of swappableObstacles) {
     if (isClose(touch, obstacle, BALL_RADIUS)) {
       return obstacle
