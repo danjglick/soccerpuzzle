@@ -8,6 +8,7 @@ const FPS = 60
 const BALL_RADIUS = window.innerWidth / 20
 const BALL_SPEED_DIVISOR = 5
 const BALL_RESTITUTION = .85
+const BALL_MIN_SPEED = 19
 const BALL_MAX_SPEED = 30
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
@@ -173,7 +174,7 @@ function moveBall() {
   ball.yPos += ball.yVel
   let isBallAtBottomEdge = ball.yPos + BALL_RADIUS >= canvas.height - BALL_RADIUS
   let speed = Math.hypot(ball.xVel, ball.yVel)
-  if (isBallAtBottomEdge && speed < 19 && !ball.isBeingFlung) {
+  if (isBallAtBottomEdge && speed < BALL_MIN_SPEED && !ball.isBeingFlung) {
     ball.xVel = 0
     ball.yVel = 0
   }
