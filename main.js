@@ -1,6 +1,6 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
-const TAPS_TO_ACTIVATE_CHEAT = 3
+const TAPS_TO_ACTIVATE_CHEAT = 1
 let cheatTaps = 0
 // http://10.0.0.145:8080
 
@@ -8,8 +8,8 @@ const FPS = 60
 const BALL_RADIUS = window.innerWidth / 20
 const BALL_SPEED_DIVISOR = 5
 const BALL_RESTITUTION = .85
-const BALL_MIN_SPEED = 19
-const BALL_MAX_SPEED = 30
+const BALL_MIN_SPEED = 15
+const BALL_MAX_SPEED = 30 // not currently used
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
@@ -19,6 +19,8 @@ const SCURRY_SPEED_DIVISOR = 250
 const SCURRY_SPOTS = [{ xPos: 0, yPos: window.innerHeight / 2 }, { xPos: 0, yPos: window.innerHeight * .25 }, { xPos: 0, yPos: 0 }, { xPos: window.innerWidth, yPos: 0 }, { xPos: window.innerWidth, yPos: window.innerHeight * .25 }, { xPos: window.innerWidth, yPos: window.innerHeight / 2 }]
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
+const POINTS_TO_WIN = 5
+const LEVELS = ["Quarterfinals", "Semifinals", "Championship"]
 
 let canvas;
 let ctx;
@@ -37,6 +39,9 @@ let rotatingObstacle = {}
 let selectedObstacle = {}
 let isScurryMode = false
 let scurryingObstacles = [cannon, puddle, wall, wormholeA, wormholeB, bonus]
+let playerScore = 0
+let enemyScore = 0
+let levelIndex = 0
 
 function initialize() {
   canvas = document.getElementById('canvas')
@@ -77,6 +82,7 @@ function spawnBall() {
     yPos: spawn.yPos, 
     xVel: 0, 
     yVel: 0, 
+    angle: 0,
     isBeingFlung: false, 
     spawn: spawn 
 }
@@ -136,11 +142,14 @@ function handleTouchstart(e) {
   touch1.yPos = e.touches[0].clientY
   if (isClose(touch1, ball, BALL_RADIUS)) {
     ball.isBeingFlung = true
+    if (!goal.isEnabled) {
+      isScurryMode = true
+    }
     return
   }
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { cheatTaps++; if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { key.isEnabled = false; } }
+  handleCheatTap()
 }
 
 function handleTouchmove(e) {
@@ -162,16 +171,17 @@ function handleTouchend() {
 }
 
 function loopGame() {
+  draw()
   moveBall()
   moveObstacles()
   handleCollision()
-  draw()
   setTimeout(loopGame, getMSPerFrame())
 }
 
 function moveBall() {
   ball.xPos += ball.xVel
   ball.yPos += ball.yVel
+  ball.angle += ball.xVel / BALL_RADIUS
   let isBallAtBottomEdge = ball.yPos + BALL_RADIUS >= canvas.height - BALL_RADIUS
   let speed = Math.hypot(ball.xVel, ball.yVel)
   if (isBallAtBottomEdge && speed < BALL_MIN_SPEED && !ball.isBeingFlung) {
@@ -190,36 +200,49 @@ function moveObstacles() {
 }
 
 function handleCollision() {
-  handleCollisionWithGoal()
-  handleCollisionWithCannon()
-  handleCollisionWithPuddle()
-  handleCollisionWithWall()
-  handleCollisionWithWormhole()
-  handleCollisionWithKey()
-  handleCollisionWithBonus()
-  handleCollisionWithScurryingObstacle()
-  handleCollisionWithEdge()
+  handleGoal()
+  handleCannon()
+  handlePuddle()
+  handleWall()
+  handleWormhole()
+  handleKey()
+  handleBonus()
+  // handleScurryingObstacle()
+  handleEdge()
 }
 
-function handleCollisionWithGoal() {
+function handleGoal() {
   if (goal.isEnabled && !key.isEnabled) {
     let isBallPastGoalLine = ball.yPos - BALL_RADIUS < goal.yPos + GOAL_HEIGHT
     let isBallInsideRightPost = ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH
     let isBallInsideLeftPost = ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
     if (isBallPastGoalLine && isBallInsideRightPost && isBallInsideLeftPost) {
-      if (bonus.isEnabled) {
-        alert("Goal!")
-      } else {
-        alert("Goal + Bonus!")
+      goal.isEnabled = false
+      ball.xVel = 0
+      ball.yVel = 0
+      ball.yPos = 0
+      updateScore()
+      let bonusText = ""
+      if (!bonus.isEnabled) {
+        updateScore()
+        bonusText = getBonusText()
       }
-      scurryObstacles()
-      setTimeout(generateLevel, 5000)
+      // do something
+      // sendObstaclesScurrying()
+      setTimeout(generateLevel, 1000)
     }
   }
 }
 
-function scurryObstacles() {
-  isScurryMode = true
+function updateScore(isPlayer = true, newPoints = 1) {
+  if (isPlayer) {
+    playerScore += newPoints
+  } else {
+    enemyScore += newPoints
+  }
+}
+
+function sendObstaclesScurrying() {
   goal.isEnabled = false
   let usedWaypoints = []
   for (let i = 0; i < scurryingObstacles.length; i++) {
@@ -249,17 +272,23 @@ function scurryObstacles() {
   }
 }
 
-function handleCollisionWithScurryingObstacle() {
+function handleScurryingObstacle() {
   if (isScurryMode) {
     for (let i = 0; i < scurryingObstacles.length; i++) {
       if (isClose(scurryingObstacles[i], ball, BALL_RADIUS * 2)) {
-        //alert("hit!")
+        playerScore++
+        // do something
+        for (let j = 0; j < scurryingObstacles.length; j++) {
+          scurryingObstacles[j].xVel *= 2
+          scurryingObstacles[j].yVel *= 2
+          isScurryMode = false
+        }
       } 
     }
   }
 }
 
-function handleCollisionWithCannon() {
+function handleCannon() {
   if (cannon.isEnabled && isClose(ball, cannon, BALL_RADIUS * 2)) {
     let speed = Math.hypot(ball.xVel, ball.yVel)
     ball.xVel = Math.sin(cannon.angle) * speed
@@ -269,14 +298,14 @@ function handleCollisionWithCannon() {
   }
 }
 
-function handleCollisionWithPuddle() {
+function handlePuddle() {
   if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS * 2)) {
     ball.xVel = 0
     ball.yVel = 0
   }
 }
 
-function handleCollisionWithWall() {
+function handleWall() {
   if (wall.isEnabled) {
     let dirX = Math.cos(wall.angle)
     let dirY = Math.sin(wall.angle)
@@ -301,7 +330,7 @@ function handleCollisionWithWall() {
   }
 }
 
-function handleCollisionWithWormhole() {
+function handleWormhole() {
   if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS * 2)) {
     ball.xPos = wormholeB.xPos
     ball.yPos = wormholeB.yPos
@@ -320,19 +349,19 @@ function cooldownWormhole() {
   setTimeout(() => wormholeB.isEnabled = true, COOLDOWN_DURATION)
 }
 
-function handleCollisionWithKey() {
+function handleKey() {
   if (isClose(ball, key, BALL_RADIUS + BALL_RADIUS / 2)) {
     key.isEnabled = false
   }
 }
 
-function handleCollisionWithBonus() {
+function handleBonus() {
   if (isClose(ball, bonus, BALL_RADIUS + BALL_RADIUS / 2)) {
     bonus.isEnabled = false
   }
 }
 
-function handleCollisionWithEdge() {
+function handleEdge() {
   let isBallAtLeftEdge = ball.xPos - BALL_RADIUS <= 0
   let isBallAtRightEdge = ball.xPos + BALL_RADIUS >= canvas.width
   let isBallAtTopEdge = ball.yPos - BALL_RADIUS < GOAL_HEIGHT
@@ -354,6 +383,7 @@ function handleCollisionWithEdge() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  drawScore()
   drawGoal()
   drawCannon()
   drawPuddle()
@@ -365,14 +395,96 @@ function draw() {
   drawSelectionBorder()
 }
 
+function drawScore() {
+  ctx.font = "25px arial"
+  ctx.fillStyle = "white"
+  ctx.fillText(`${playerScore}-${enemyScore}`, canvas.width - canvas.width / 9, canvas.height / 37)  
+  ctx.fillText(`${LEVELS[levelIndex]}`, 0, BALL_RADIUS)
+}
+
 function drawBall() {
+  ctx.save()
+  ctx.translate(ball.xPos, ball.yPos)
+  
+  // Save for rotation
+  ctx.save()
+  ctx.rotate(ball.angle)
+  
   ctx.beginPath()
-  ctx.arc(ball.xPos, ball.yPos, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = "grey"
+  ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
+  ctx.fillStyle = "white"
+  ctx.fill()
+  ctx.strokeStyle = "#333"
+  ctx.lineWidth = 2
+  ctx.stroke()
+  ctx.fillStyle = "#333"
+  drawPentagon(0, 0, BALL_RADIUS * 0.4)
+  let outerRadius = BALL_RADIUS * 0.85
+  for (let i = 0; i < 5; i++) {
+    let angle = (i * 2 * Math.PI / 5) - Math.PI / 2
+    let px = Math.cos(angle) * outerRadius
+    let py = Math.sin(angle) * outerRadius
+    drawPentagon(px, py, BALL_RADIUS * 0.3, angle + Math.PI)
+  }
+  ctx.strokeStyle = "#333"
+  ctx.lineWidth = 1
+  for (let i = 0; i < 5; i++) {
+    let angle = (i * 2 * Math.PI / 5) - Math.PI / 2
+    let startRadius = BALL_RADIUS * 0.4
+    let endRadius = BALL_RADIUS * 0.7
+    ctx.beginPath()
+    ctx.moveTo(Math.cos(angle) * startRadius, Math.sin(angle) * startRadius)
+    ctx.lineTo(Math.cos(angle) * endRadius, Math.sin(angle) * endRadius)
+    ctx.stroke()
+  }
+  // Restore from rotation so the highlight stays static
+  ctx.restore()
+
+  let gradient = ctx.createRadialGradient(
+    -BALL_RADIUS * 0.3, -BALL_RADIUS * 0.3, BALL_RADIUS * 0.1,
+    0, 0, BALL_RADIUS
+  )
+  gradient.addColorStop(0, "rgba(255, 255, 255, 0.3)")
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.15)")
+  ctx.beginPath()
+  ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
+  ctx.fillStyle = gradient
+  ctx.fill()
+  
+  ctx.restore()
+}
+
+function drawPentagon(cx, cy, radius, rotation = 0) {
+  ctx.beginPath()
+  for (let i = 0; i < 5; i++) {
+    let angle = (i * 2 * Math.PI / 5) - Math.PI / 2 + rotation
+    let px = cx + Math.cos(angle) * radius
+    let py = cy + Math.sin(angle) * radius
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.closePath()
   ctx.fill()
 }
 
 function drawGoal() {
+  let netSpacing = BALL_RADIUS / 3
+  let leftPost = goal.xPos - GOAL_WIDTH / 2
+  let rightPost = goal.xPos + GOAL_WIDTH / 2
+  ctx.strokeStyle = "#555"
+  ctx.lineWidth = 1.5
+  for (let x = leftPost; x <= rightPost; x += netSpacing) {
+    ctx.beginPath()
+    ctx.moveTo(x, goal.yPos)
+    ctx.lineTo(x, goal.yPos + GOAL_HEIGHT)
+    ctx.stroke()
+  }
+  for (let y = goal.yPos; y <= goal.yPos + GOAL_HEIGHT; y += netSpacing) {
+    ctx.beginPath()
+    ctx.moveTo(leftPost, y)
+    ctx.lineTo(rightPost, y)
+    ctx.stroke()
+  }
   ctx.beginPath()
   ctx.moveTo(goal.xPos, goal.yPos)
   ctx.lineTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos)
@@ -521,6 +633,26 @@ function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
 
 function getMSPerFrame() {
   return 1000 / FPS
+}
+
+function getBonusText() {
+  return "and bonus point"
+}
+
+function getGoalText(bonusText) {
+  return `You scored a goal ${bonusText}!`
+}
+
+function handleCheatTap() {
+  let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
+  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
+    cheatTaps++ 
+    if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { 
+      for (let i = 0; i < obstacles.length; i++) { 
+        obstacles[i].isEnabled = false 
+      } 
+    }
+  }
 }
 
 // ai swap/rotate code 
