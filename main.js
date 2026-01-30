@@ -34,18 +34,17 @@ let wormholeA = {}
 let wormholeB = {}
 let key = {}
 let bonus = {}
+let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
 let touch1 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
 let rotatingObstacle = {}
 let selectedObstacle = {}
-let isScurryMode = false
-let scurryingObstacles = [cannon, puddle, wall, wormholeA, wormholeB, bonus]
 let playerScore = 0
 let enemyScore = 0
 let levelIndex = 0
+let areObstaclesHidden = false
 
 function handleCheatTap() {
-  let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
   if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
     cheatTaps++ 
     if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { 
@@ -82,7 +81,6 @@ function generateLevel() {
   spawnObstacle(key)
   spawnObstacle(bonus)
   selectedObstacle = null
-  isScurryMode = false
   cheatTaps = 0
 }
 
@@ -206,11 +204,6 @@ function moveBall() {
 }
 
 function moveObstacles() {
-  for (let i = 0; i < scurryingObstacles.length; i++) {
-    let obstacle = scurryingObstacles[i]
-    obstacle.xPos += obstacle.xVel
-    obstacle.yPos += obstacle.yVel
-  }
   updateSwapAnimation()
 }
 
@@ -222,7 +215,6 @@ function handleCollision() {
   handleWormhole()
   handleKey()
   handleBonus()
-  // handleScurryingObstacle()
   handleEdge()
 }
 
@@ -236,70 +228,24 @@ function handleGoal() {
       ball.xVel = 0
       ball.yVel = 0
       ball.yPos = GOAL_HEIGHT
-      incrementScore()
+      areObstaclesHidden = true
+      setTimeout(() => incrementScore(), 1250)
       let bonusText = ""
       if (!bonus.isEnabled) {
-        incrementScore()
+        setTimeout(() => incrementScore(), 2500)
         bonusText = getBonusText()
       }
-      // do something
-      // sendObstaclesScurrying()
-      setTimeout(generateLevel, 1000)
+      setTimeout(() => ball.yPos = canvas.height - BALL_RADIUS * 4, 3750)// do something
     }
   }
 }
 
 function incrementScore(isPlayer = true, newPoints = 1) {
+  console.log(1)
   if (isPlayer) {
     playerScore += newPoints
   } else {
     enemyScore += newPoints
-  }
-}
-
-function sendObstaclesScurrying() {
-  goal.isEnabled = false
-  let usedWaypoints = []
-  for (let i = 0; i < scurryingObstacles.length; i++) {
-    let obstacle = scurryingObstacles[i]
-    obstacle.isEnabled = false
-    let isObstacleInLeftHalf = obstacle.xPos < canvas.width / 2
-    let exitX = isObstacleInLeftHalf ? canvas.width : 0
-    let waypoint = null
-    let maxAttempts = 100
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      waypoint = {
-        xPos: exitX,
-        yPos: Math.random() * canvas.height * 0.7
-      }
-      let isTooClose = false
-      for (let j = 0; j < usedWaypoints.length; j++) {
-        if (isClose(waypoint, usedWaypoints[j], WALL_LENGTH)) {
-          isTooClose = true
-          break
-        }
-      }
-      if (!isTooClose) break
-    }
-    obstacle.xVel = (waypoint.xPos - obstacle.xPos) / SCURRY_SPEED_DIVISOR
-    obstacle.yVel = (waypoint.yPos - obstacle.yPos) / SCURRY_SPEED_DIVISOR
-    usedWaypoints.push(waypoint)
-  }
-}
-
-function handleScurryingObstacle() {
-  if (isScurryMode) {
-    for (let i = 0; i < scurryingObstacles.length; i++) {
-      if (isClose(scurryingObstacles[i], ball, BALL_RADIUS * 2)) {
-        playerScore++
-        // do something
-        for (let j = 0; j < scurryingObstacles.length; j++) {
-          scurryingObstacles[j].xVel *= 2
-          scurryingObstacles[j].yVel *= 2
-          isScurryMode = false
-        }
-      } 
-    }
   }
 }
 
@@ -401,12 +347,14 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawScore()
   drawGoal()
-  drawCannon()
-  drawPuddle()
-  drawWall()
-  drawWormhole()
-  drawKey()
-  drawBonus()
+  if (!areObstaclesHidden) {
+    drawCannon()
+    drawPuddle()
+    drawWall()
+    drawWormhole()
+    drawKey()
+    drawBonus()
+  }
   drawBall()
   drawSelectionBorder()
 }
