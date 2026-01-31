@@ -211,7 +211,7 @@ function moveObstacles() {
 
 function handleCollision() {
   handleGoal()
-  handleOwnGoal()
+  //handleOwnGoal()
   handleCannon()
   handlePuddle()
   handleWall()
@@ -219,7 +219,7 @@ function handleCollision() {
   handleKey()
   handleBonus()
   handleEdge()
-  handleEnemy()
+  //handleEnemy()
 }
 
 function handleEnemy() {
@@ -242,11 +242,13 @@ function handleGoal() {
       ball.xVel = 0
       ball.yVel = 0
       ball.yPos = GOAL_HEIGHT
-      setTimeout(() => incrementScore(), 2000)
+      //setTimeout(() => incrementScore(), 2000)
       if (!bonus.isEnabled) {
-        setTimeout(() => incrementScore(), 3000)
+        //setTimeout(() => incrementScore(), 3000)
       }
-      setTimeout(() => generateLevel(), !bonus.isEnabled ? 5000 : 4000)
+      //setTimeout(() => generateLevel(), !bonus.isEnabled ? 5000 : 4000)
+      alert("Goal!")
+      generateLevel()
     }
   }
 }
@@ -374,9 +376,9 @@ function handleEdge() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  drawScore()
+  //drawScore()
   drawGoal()
-  drawOwnGoal()
+  //drawOwnGoal()
   if (!areObstaclesHidden) {
     drawCannon()
     drawPuddle()
@@ -384,7 +386,7 @@ function draw() {
     drawWormhole()
     drawKey()
     drawBonus()
-    drawEnemy()
+    //drawEnemy()
   }
   drawBall()
   drawSelectionBorder()
@@ -404,8 +406,9 @@ function drawEnemy() {
 function drawScore() {
   ctx.font = "25px arial"
   ctx.fillStyle = "white"
-  ctx.fillText(`${playerScore}-${enemyScore}`, canvas.width - canvas.width / 9, canvas.height / 37)  
   ctx.fillText(`${LEVELS[levelIndex]}`, 0, BALL_RADIUS)
+  ctx.fillText(`${playerScore}-${enemyScore}`, canvas.width - canvas.width / 9, canvas.height / 37)  
+  //ctx.fillText(`first to 3`, canvas.width - canvas.width / 4.5, canvas.height / 37) 
 }
 
 function drawBall() {
