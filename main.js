@@ -242,11 +242,11 @@ function handleGoal() {
       ball.xVel = 0
       ball.yVel = 0
       ball.yPos = GOAL_HEIGHT
-      setTimeout(() => incrementScore(), 1000)
+      setTimeout(() => incrementScore(), 2000)
       if (!bonus.isEnabled) {
-        setTimeout(() => incrementScore(), 2000)
+        setTimeout(() => incrementScore(), 3000)
       }
-      setTimeout(() => generateLevel(), !bonus.isEnabled ? 3000 : 2000)
+      setTimeout(() => generateLevel(), !bonus.isEnabled ? 5000 : 4000)
     }
   }
 }
@@ -261,11 +261,11 @@ function handleOwnGoal() {
       ball.xVel = 0
       ball.yVel = 0
       ball.yPos = canvas.height - GOAL_HEIGHT / 2
-      setTimeout(() => incrementScore(false), 1000)
+      setTimeout(() => incrementScore(false), 2000)
       if (!bonus.isEnabled) {
-        setTimeout((incrementScore(false), 2000))
+        setTimeout((incrementScore(false), 3000))
       }
-      setTimeout(() => generateLevel(), !bonus.isEnabled ? 3000 : 2000)
+      setTimeout(() => generateLevel(), !bonus.isEnabled ? 5000 : 4000)
     } 
   }
 }
