@@ -223,10 +223,12 @@ function handleCollision() {
 }
 
 function handleEnemy() {
-  if (isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
-    ball.xVel = (ownGoal.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
-    ball.yVel = (ownGoal.yPos - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
-    ownGoal.isEnabled = true
+  if (enemy.isEnabled) {
+    if (isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
+      ball.xVel = (ownGoal.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
+      ball.yVel = (ownGoal.yPos - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
+      ownGoal.isEnabled = true
+    }
   }
 }
 
@@ -240,19 +242,16 @@ function handleGoal() {
       ball.xVel = 0
       ball.yVel = 0
       ball.yPos = GOAL_HEIGHT
-      areObstaclesHidden = true
-      setTimeout(() => incrementScore(), 1250)
-      let bonusText = ""
+      setTimeout(() => incrementScore(), 1000)
       if (!bonus.isEnabled) {
-        setTimeout(() => incrementScore(), 2500)
+        setTimeout(() => incrementScore(), 2000)
       }
-      setTimeout(() => ball.yPos = canvas.height - BALL_RADIUS * 4, 3750)
+      setTimeout(() => generateLevel(), !bonus.isEnabled ? 3000 : 2000)
     }
   }
 }
 
 function handleOwnGoal() {
-  console.log(ownGoal.isEnabled)
   if (ownGoal.isEnabled) {
     let isBallPastGoalLine = ball.yPos + BALL_RADIUS >= canvas.height
     let isBallInsideRightPost = ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH
@@ -262,11 +261,11 @@ function handleOwnGoal() {
       ball.xVel = 0
       ball.yVel = 0
       ball.yPos = canvas.height - GOAL_HEIGHT / 2
-      setTimeout(() => incrementScore(false), 1250)
+      setTimeout(() => incrementScore(false), 1000)
       if (!bonus.isEnabled) {
-        setTimeout((incrementScore(false), 2500))
+        setTimeout((incrementScore(false), 2000))
       }
-      setTimeout(() => generateLevel(), 3750)
+      setTimeout(() => generateLevel(), !bonus.isEnabled ? 3000 : 2000)
     } 
   }
 }
@@ -697,7 +696,7 @@ function handleTouchstartToRotate() {
 function handleTouchstartToSwap() {
   if (swapAnimation) return
   let tappedObstacle = getTappedObstacle(touch1)
-  if (tappedObstacle) {
+  if (tappedObstacle && tappedObstacle.isEnabled) {
     if (selectedObstacle && selectedObstacle !== tappedObstacle) {
       startSwapAnimation(selectedObstacle, tappedObstacle)
       selectedObstacle = null
