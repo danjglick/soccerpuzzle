@@ -373,11 +373,7 @@ function handleEdge() {
 }
 
 function draw() {
-  let gradient = ctx.createLinearGradient(0, canvas.height, 0, 0)
-  gradient.addColorStop(0, "#071c07")
-  gradient.addColorStop(1, "#0a1f0a")
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawScore()
   drawGoal()
   drawOwnGoal()
