@@ -77,6 +77,7 @@ function generateLevel() {
   spawnedObstacles = []
   for (let i = 0; i < obstacles.length; i++) spawnObstacle(obstacles[i])
   selectedObstacle = null
+  ownGoal.isEnabled = false
   cheatTaps = 0
 }
 
@@ -210,6 +211,7 @@ function moveObstacles() {
 
 function handleCollision() {
   handleGoal()
+  handleOwnGoal()
   handleCannon()
   handlePuddle()
   handleWall()
@@ -217,6 +219,15 @@ function handleCollision() {
   handleKey()
   handleBonus()
   handleEdge()
+  handleEnemy()
+}
+
+function handleEnemy() {
+  if (isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
+    ball.xVel = (ownGoal.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
+    ball.yVel = (ownGoal.yPos - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
+    ownGoal.isEnabled = true
+  }
 }
 
 function handleGoal() {
@@ -234,19 +245,37 @@ function handleGoal() {
       let bonusText = ""
       if (!bonus.isEnabled) {
         setTimeout(() => incrementScore(), 2500)
-        bonusText = getBonusText()
       }
-      setTimeout(() => ball.yPos = canvas.height - BALL_RADIUS * 4, 3750)// do something
+      setTimeout(() => ball.yPos = canvas.height - BALL_RADIUS * 4, 3750)
     }
   }
 }
 
-function incrementScore(isPlayer = true, newPoints = 1) {
-  console.log(1)
+function handleOwnGoal() {
+  console.log(ownGoal.isEnabled)
+  if (ownGoal.isEnabled) {
+    let isBallPastGoalLine = ball.yPos + BALL_RADIUS >= canvas.height
+    let isBallInsideRightPost = ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH
+    let isBallInsideLeftPost = ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
+    if (isBallPastGoalLine && isBallInsideRightPost && isBallInsideLeftPost) {
+      ownGoal.isEnabled = false
+      ball.xVel = 0
+      ball.yVel = 0
+      ball.yPos = canvas.height - GOAL_HEIGHT / 2
+      setTimeout(() => incrementScore(false), 1250)
+      if (!bonus.isEnabled) {
+        setTimeout((incrementScore(false), 2500))
+      }
+      setTimeout(() => generateLevel(), 3750)
+    } 
+  }
+}
+
+function incrementScore(isPlayer = true) {
   if (isPlayer) {
-    playerScore += newPoints
+    playerScore++
   } else {
-    enemyScore += newPoints
+    enemyScore++
   }
 }
 
@@ -473,6 +502,7 @@ function drawGoal() {
 }
 
 function drawOwnGoal() {
+  ctx.save()
   ctx.beginPath()
   ctx.moveTo(0, canvas.height - GOAL_HEIGHT / 2)
   ctx.lineTo(ownGoal.xPos - GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
@@ -480,6 +510,7 @@ function drawOwnGoal() {
   ctx.lineTo(canvas.width, canvas.height - GOAL_HEIGHT / 2)
   ctx.lineWidth = 5
   ctx.strokeStyle = "grey"
+  ctx.globalAlpha = .5
   ctx.stroke()
   let netSpacing = BALL_RADIUS / 3
   let leftPost = ownGoal.xPos - GOAL_WIDTH / 2
@@ -508,6 +539,7 @@ function drawOwnGoal() {
   ctx.lineWidth = 5
   ctx.strokeStyle = "grey"
   ctx.stroke()
+  ctx.restore()
 }
 
 function drawCannon() {
@@ -643,14 +675,6 @@ function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
 
 function getMSPerFrame() {
   return 1000 / FPS
-}
-
-function getBonusText() {
-  return "and bonus point"
-}
-
-function getGoalText(bonusText) {
-  return `You scored a goal ${bonusText}!`
 }
 
 // ai swap/rotate code 
