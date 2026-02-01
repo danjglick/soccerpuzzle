@@ -430,18 +430,6 @@ function draw() {
   //drawSwappableBorders()
 }
 
-function isPlaySpelledCorrectly() {
-  // Sort letters by xPos to get left-to-right order
-  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
-  // Check if they spell "play" from left to right
-  return( 
-    sortedLetters[0].char === 'p' &&
-    sortedLetters[1].char === 'l' &&
-    sortedLetters[2].char === 'a' &&
-    sortedLetters[3].char === 'y'
-  )
-}
-
 function drawMenu() {
   if (showWelcome) {
     ctx.textAlign = "center"
@@ -483,83 +471,6 @@ function drawMenu() {
   }
 }
 
-function drawPlayBorder() {
-  // Calculate the bounding rectangle from all letters (for touch detection)
-  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
-  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
-  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
-  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
-  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
-  //
-  let rectWidth = rightX - leftX
-  let rectHeight = bottomY - topY
-  //
-  ctx.save()
-  //
-  let time = Date.now() * 0.01
-  //
-  // Draw multiple layers for electricity effect around the bounding rectangle
-  for (let layer = 0; layer < 3; layer++) {
-    let opacity = layer === 0 ? 0.3 : (layer === 1 ? 0.6 : 0.8)
-    let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
-    //
-    ctx.strokeStyle = layer === 0 
-      ? `rgba(77, 208, 225, ${opacity})`
-      : layer === 1
-      ? `rgba(150, 230, 240, ${opacity})`
-      : `rgba(170, 235, 245, ${opacity})`
-    ctx.lineWidth = lineWidth
-    ctx.lineCap = "round"
-    ctx.lineJoin = "round"
-    //
-    // Create jagged border effect
-    let segments = 32
-    ctx.beginPath()
-    //
-    // Top edge
-    for (let i = 0; i <= segments / 4; i++) {
-      let t = i / (segments / 4)
-      let x = leftX + rectWidth * t
-      let jitter = Math.sin(time * 2 + i * 0.5) * 2 + Math.cos(time * 1.5 + i * 0.7) * 2
-      let y = topY + jitter * (layer === 0 ? 1 : 0.5)
-      if (i === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
-    }
-    //
-    // Right edge
-    for (let i = 0; i <= segments / 4; i++) {
-      let t = i / (segments / 4)
-      let y = topY + rectHeight * t
-      let jitter = Math.sin(time * 2 + (segments / 4 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments / 4 + i) * 0.7) * 2
-      let x = rightX + jitter * (layer === 0 ? 1 : 0.5)
-      ctx.lineTo(x, y)
-    }
-    //
-    // Bottom edge
-    for (let i = 0; i <= segments / 4; i++) {
-      let t = i / (segments / 4)
-      let x = rightX - rectWidth * t
-      let jitter = Math.sin(time * 2 + (segments / 2 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments / 2 + i) * 0.7) * 2
-      let y = bottomY + jitter * (layer === 0 ? 1 : 0.5)
-      ctx.lineTo(x, y)
-    }
-    //
-    // Left edge
-    for (let i = 0; i <= segments / 4; i++) {
-      let t = i / (segments / 4)
-      let y = bottomY - rectHeight * t
-      let jitter = Math.sin(time * 2 + (segments * 3 / 4 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments * 3 / 4 + i) * 0.7) * 2
-      let x = leftX + jitter * (layer === 0 ? 1 : 0.5)
-      ctx.lineTo(x, y)
-    }
-    //
-    ctx.closePath()
-    ctx.stroke()
-  }
-  //
-  ctx.restore()
-}
-
 function drawTrophies() {
   // Draw trophies horizontally starting from top left corner
   let startX = TROPHY_SIZE
@@ -571,123 +482,6 @@ function drawTrophies() {
     let y = startY
     drawTrophy(x, y)
   }
-}
-
-function drawTrophy(x, y) {
-  ctx.save()
-  
-  // Use TROPHY_SIZE as the base radius for scaling
-  let radius = TROPHY_SIZE
-  // Scale factor to make trophy appear as large as a circle with the same radius
-  let scale = 1.6
-  let scaledRadius = radius * scale
-  
-  // Draw trophy in gold/yellow with gradient
-  let gradient = ctx.createLinearGradient(x, y - scaledRadius, x, y + scaledRadius)
-  gradient.addColorStop(0, "#ffed4e") // Lighter gold at top
-  gradient.addColorStop(0.5, "#ffd700") // Gold in middle
-  gradient.addColorStop(1, "#daa520") // Darker gold at bottom
-  ctx.fillStyle = gradient
-  ctx.strokeStyle = "#b8860b" // Dark gold for outline
-  ctx.lineWidth = Math.max(1, radius * 0.1)
-  
-  // Trophy base (bottom, wider and perfectly centered)
-  let baseWidth = scaledRadius * 1.0
-  let baseHeight = scaledRadius * 0.15
-  let baseY = y + scaledRadius * 0.35
-  ctx.beginPath()
-  ctx.rect(x - baseWidth / 2, baseY, baseWidth, baseHeight)
-  ctx.fill()
-  ctx.stroke()
-  
-  // Trophy stem/pedestal (connects base to cup, perfectly centered)
-  let stemWidth = scaledRadius * 0.3
-  let stemHeight = scaledRadius * 0.2
-  let stemY = y + scaledRadius * 0.15
-  ctx.beginPath()
-  ctx.rect(x - stemWidth / 2, stemY, stemWidth, stemHeight)
-  ctx.fill()
-  ctx.stroke()
-  
-  // Trophy cup/bowl (main body, perfectly symmetrical)
-  let cupBottomY = stemY
-  let cupTopY = y - scaledRadius * 0.3
-  let cupBottomWidth = scaledRadius * 0.4
-  let cupTopWidth = scaledRadius * 0.7
-  let cupInnerTopWidth = scaledRadius * 0.4
-  
-  ctx.beginPath()
-  // Start at bottom left
-  ctx.moveTo(x - cupBottomWidth / 2, cupBottomY)
-  // Left side curve (symmetric)
-  ctx.quadraticCurveTo(
-    x - cupTopWidth / 2, (cupBottomY + cupTopY) / 2,
-    x - cupTopWidth / 2, cupTopY
-  )
-  // Top rim left
-  ctx.lineTo(x - cupInnerTopWidth / 2, cupTopY)
-  // Inner left edge
-  ctx.lineTo(x - cupInnerTopWidth / 2, cupTopY + scaledRadius * 0.1)
-  // Inner bottom curve (symmetric)
-  ctx.quadraticCurveTo(x, cupTopY + scaledRadius * 0.15, x + cupInnerTopWidth / 2, cupTopY + scaledRadius * 0.1)
-  // Inner right edge
-  ctx.lineTo(x + cupInnerTopWidth / 2, cupTopY)
-  // Top rim right
-  ctx.lineTo(x + cupTopWidth / 2, cupTopY)
-  // Right side curve (symmetric to left)
-  ctx.quadraticCurveTo(
-    x + cupTopWidth / 2, (cupBottomY + cupTopY) / 2,
-    x + cupBottomWidth / 2, cupBottomY
-  )
-  ctx.closePath()
-  ctx.fill()
-  ctx.stroke()
-  
-  // Trophy handles (perfectly symmetrical C-shaped handles)
-  let handleRadius = scaledRadius * 0.2
-  let handleXOffset = scaledRadius * 0.45
-  let handleY = y - scaledRadius * 0.05
-  let handleThickness = scaledRadius * 0.12
-  
-  // Left handle (C-shaped, opening to the right)
-  ctx.beginPath()
-  ctx.arc(x - handleXOffset, handleY, handleRadius, Math.PI * 0.5, Math.PI * 1.5, false)
-  ctx.lineWidth = handleThickness
-  ctx.lineCap = "round"
-  ctx.stroke()
-  
-  // Right handle (C-shaped, opening to the left, perfectly mirrored)
-  ctx.beginPath()
-  ctx.arc(x + handleXOffset, handleY, handleRadius, Math.PI * 1.5, Math.PI * 0.5, false)
-  ctx.stroke()
-  
-  // Star on top (perfectly centered, 5-pointed star)
-  ctx.fillStyle = "#ffd700"
-  ctx.strokeStyle = "#ffaa00"
-  ctx.lineWidth = Math.max(1, radius * 0.05)
-  ctx.beginPath()
-  let starX = x
-  let starY = y - scaledRadius * 0.4
-  let starOuterRadius = scaledRadius * 0.15
-  let starInnerRadius = starOuterRadius * 0.5
-  let starPoints = 5
-  
-  for (let i = 0; i < starPoints * 2; i++) {
-    let angle = (Math.PI * i) / starPoints - Math.PI / 2
-    let r = (i % 2 === 0) ? starOuterRadius : starInnerRadius
-    let px = starX + Math.cos(angle) * r
-    let py = starY + Math.sin(angle) * r
-    if (i === 0) {
-      ctx.moveTo(px, py)
-    } else {
-      ctx.lineTo(px, py)
-    }
-  }
-  ctx.closePath()
-  ctx.fill()
-  ctx.stroke()
-  
-  ctx.restore()
 }
 
 function drawBall() {
@@ -862,14 +656,12 @@ function drawKey() {
     ctx.save()
     ctx.translate(key.xPos, key.yPos)
     ctx.rotate(-Math.PI / 4)
-    //
     // Key Head (ring)
     ctx.beginPath()
     ctx.arc(-KEY_SIZE * 0.4, 0, KEY_SIZE * 0.4, 0, 2 * Math.PI)
     ctx.strokeStyle = color
     ctx.lineWidth = KEY_SIZE * 0.2
     ctx.stroke()
-    //
     // Key Shaft
     ctx.beginPath()
     ctx.moveTo(0, 0)
@@ -877,7 +669,6 @@ function drawKey() {
     ctx.lineWidth = KEY_SIZE * 0.16
     ctx.lineCap = "round"
     ctx.stroke()
-    //
     // Key Teeth
     ctx.beginPath()
     ctx.moveTo(KEY_SIZE * 0.6, 0)
@@ -920,6 +711,204 @@ function drawBonus() {
     }
     ctx.closePath()
     ctx.fill()
+  }
+}
+
+function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
+  return(
+    Math.abs(objectA.xPos - objectB.xPos) < threshold && 
+    Math.abs(objectA.yPos - objectB.yPos) < threshold
+  )
+}
+
+function getMSPerFrame() {
+  return 1000 / FPS
+}
+
+function isPlaySpelledCorrectly() {
+  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos) // Sort letters by xPos to get left-to-right order
+  return( // Check if they spell "play" from left to right
+    sortedLetters[0].char === 'p' &&
+    sortedLetters[1].char === 'l' &&
+    sortedLetters[2].char === 'a' &&
+    sortedLetters[3].char === 'y'
+  )
+}
+
+function getAlertText(bonusText) {
+  return(
+`
+Goal!
+
+${bonusText}
+`
+  )
+}
+
+// ai swap/rotate code 
+
+let swapAnimation = null
+
+function handleTouchstartToRotate() {
+  let cannonHandle = getCannonHandle()
+  if (isClose(touch1, cannonHandle, BALL_RADIUS)) {
+    rotatingObstacle = cannon
+    return
+  }
+  let wallEnds = getWallEnds()
+  if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
+    rotatingObstacle = wall
+    return
+  }
+}
+
+function handleTouchstartToSwap() {
+  if (swapAnimation) return
+  let tappedObstacle = getTappedObstacle(touch1)
+  if (tappedObstacle && tappedObstacle.isEnabled) {
+    if (selectedObstacle && selectedObstacle !== tappedObstacle) {
+      startSwapAnimation(selectedObstacle, tappedObstacle)
+      selectedObstacle = null
+    } else {
+      selectedObstacle = tappedObstacle
+    }
+  } else {
+    selectedObstacle = null
+  }
+}
+
+function handleTouchstartToSwapLetters() {
+  if (!hasFlung || letterSwapAnimation) return
+  let tappedLetter = getTappedLetter(touch1)
+  if (tappedLetter) {
+    if (selectedLetter && selectedLetter !== tappedLetter) {
+      startLetterSwapAnimation(selectedLetter, tappedLetter)
+      selectedLetter = null
+    } else {
+      selectedLetter = tappedLetter
+    }
+  } else {
+    selectedLetter = null
+  }
+}
+
+function getTappedLetter(touch) {
+  for (let letter of swappableLetters) {
+    // Check if touch is within the circle bounds
+    let radius = LETTER_SQUARE_SIZE / 2
+    let dx = touch.xPos - letter.xPos
+    let dy = touch.yPos - letter.yPos
+    let distance = Math.hypot(dx, dy)
+    if (distance <= radius) {
+      return letter
+    }
+  }
+  return null
+}
+
+function startLetterSwapAnimation(letterA, letterB) {
+  letterSwapAnimation = {
+    letterA: letterA,
+    letterB: letterB,
+    startAX: letterA.xPos,
+    startAY: letterA.yPos,
+    startBX: letterB.xPos,
+    startBY: letterB.yPos,
+    progress: 0
+  }
+}
+
+function updateLetterSwapAnimation() {
+  if (!letterSwapAnimation) return
+  letterSwapAnimation.progress++
+  let t = letterSwapAnimation.progress / SWAP_DURATION
+  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  letterSwapAnimation.letterA.xPos = letterSwapAnimation.startAX + (letterSwapAnimation.startBX - letterSwapAnimation.startAX) * eased
+  letterSwapAnimation.letterA.yPos = letterSwapAnimation.startAY + (letterSwapAnimation.startBY - letterSwapAnimation.startAY) * eased
+  letterSwapAnimation.letterB.xPos = letterSwapAnimation.startBX + (letterSwapAnimation.startAX - letterSwapAnimation.startBX) * eased
+  letterSwapAnimation.letterB.yPos = letterSwapAnimation.startBY + (letterSwapAnimation.startAY - letterSwapAnimation.startBY) * eased
+  if (letterSwapAnimation.progress >= SWAP_DURATION) {
+    letterSwapAnimation.letterA.xPos = letterSwapAnimation.startBX
+    letterSwapAnimation.letterA.yPos = letterSwapAnimation.startBY
+    letterSwapAnimation.letterB.xPos = letterSwapAnimation.startAX
+    letterSwapAnimation.letterB.yPos = letterSwapAnimation.startAY
+    letterSwapAnimation = null
+  }
+}
+
+function handleTouchmoveToRotate(touch2) {
+  if (rotatingObstacle === cannon) {
+    let dx = touch2.xPos - cannon.xPos
+    let dy = touch2.yPos - cannon.yPos
+    cannon.angle = Math.atan2(-dx, dy)
+  }
+  if (rotatingObstacle === wall) {
+    let dx = touch2.xPos - wall.xPos
+    let dy = touch2.yPos - wall.yPos
+    wall.angle = Math.atan2(dy, dx)
+    let wallLength = Math.sqrt(dx * dx + dy * dy)
+    wall.length = Math.max(WALL_LENGTH, wallLength)
+  }
+}
+
+function getCannonHandle() { 
+  return {
+    xPos: cannon.xPos - Math.sin(cannon.angle) * BALL_RADIUS * 1.5,
+    yPos: cannon.yPos + Math.cos(cannon.angle) * BALL_RADIUS * 1.5
+  }
+}
+
+function getWallEnds() {
+  let dirX = Math.cos(wall.angle)
+  let dirY = Math.sin(wall.angle)
+  return {
+    a: { 
+      xPos: wall.xPos, 
+      yPos: wall.yPos 
+    },
+    b: { 
+      xPos: wall.xPos + wall.length * dirX, 
+      yPos: wall.yPos + wall.length * dirY 
+    }
+  }
+}
+
+function getTappedObstacle(touch) {
+  for (let obstacle of swappableObstacles) {
+    if (isClose(touch, obstacle, BALL_RADIUS)) {
+      return obstacle
+    }
+  }
+  return null
+}
+
+function startSwapAnimation(obstacleA, obstacleB) {
+  swapAnimation = {
+    obstacleA: obstacleA,
+    obstacleB: obstacleB,
+    startAX: obstacleA.xPos,
+    startAY: obstacleA.yPos,
+    startBX: obstacleB.xPos,
+    startBY: obstacleB.yPos,
+    progress: 0
+  }
+}
+
+function updateSwapAnimation() {
+  if (!swapAnimation) return
+  swapAnimation.progress++
+  let t = swapAnimation.progress / SWAP_DURATION
+  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  swapAnimation.obstacleA.xPos = swapAnimation.startAX + (swapAnimation.startBX - swapAnimation.startAX) * eased
+  swapAnimation.obstacleA.yPos = swapAnimation.startAY + (swapAnimation.startBY - swapAnimation.startAY) * eased
+  swapAnimation.obstacleB.xPos = swapAnimation.startBX + (swapAnimation.startAX - swapAnimation.startBX) * eased
+  swapAnimation.obstacleB.yPos = swapAnimation.startBY + (swapAnimation.startAY - swapAnimation.startBY) * eased
+  if (swapAnimation.progress >= SWAP_DURATION) {
+    swapAnimation.obstacleA.xPos = swapAnimation.startBX
+    swapAnimation.obstacleA.yPos = swapAnimation.startBY
+    swapAnimation.obstacleB.xPos = swapAnimation.startAX
+    swapAnimation.obstacleB.yPos = swapAnimation.startAY
+    swapAnimation = null
   }
 }
 
@@ -1261,190 +1250,187 @@ function drawLetterSwapAnimationElectricity() {
   }
 }
 
-function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
-  return(
-    Math.abs(objectA.xPos - objectB.xPos) < threshold && 
-    Math.abs(objectA.yPos - objectB.yPos) < threshold
+function drawTrophy(x, y) {
+  ctx.save()
+  // Use TROPHY_SIZE as the base radius for scaling
+  let radius = TROPHY_SIZE
+  // Scale factor to make trophy appear as large as a circle with the same radius
+  let scale = 1.6
+  let scaledRadius = radius * scale
+  // Draw trophy in gold/yellow with gradient
+  let gradient = ctx.createLinearGradient(x, y - scaledRadius, x, y + scaledRadius)
+  gradient.addColorStop(0, "#ffed4e") // Lighter gold at top
+  gradient.addColorStop(0.5, "#ffd700") // Gold in middle
+  gradient.addColorStop(1, "#daa520") // Darker gold at bottom
+  ctx.fillStyle = gradient
+  ctx.strokeStyle = "#b8860b" // Dark gold for outline
+  ctx.lineWidth = Math.max(1, radius * 0.1)
+  // Trophy base (bottom, wider and perfectly centered)
+  let baseWidth = scaledRadius * 1.0
+  let baseHeight = scaledRadius * 0.15
+  let baseY = y + scaledRadius * 0.35
+  ctx.beginPath()
+  ctx.rect(x - baseWidth / 2, baseY, baseWidth, baseHeight)
+  ctx.fill()
+  ctx.stroke()
+  // Trophy stem/pedestal (connects base to cup, perfectly centered)
+  let stemWidth = scaledRadius * 0.3
+  let stemHeight = scaledRadius * 0.2
+  let stemY = y + scaledRadius * 0.15
+  ctx.beginPath()
+  ctx.rect(x - stemWidth / 2, stemY, stemWidth, stemHeight)
+  ctx.fill()
+  ctx.stroke()
+  // Trophy cup/bowl (main body, perfectly symmetrical)
+  let cupBottomY = stemY
+  let cupTopY = y - scaledRadius * 0.3
+  let cupBottomWidth = scaledRadius * 0.4
+  let cupTopWidth = scaledRadius * 0.7
+  let cupInnerTopWidth = scaledRadius * 0.4
+  //
+  ctx.beginPath()
+  // Start at bottom left
+  ctx.moveTo(x - cupBottomWidth / 2, cupBottomY)
+  // Left side curve (symmetric)
+  ctx.quadraticCurveTo(
+    x - cupTopWidth / 2, (cupBottomY + cupTopY) / 2,
+    x - cupTopWidth / 2, cupTopY
   )
-}
-
-function getMSPerFrame() {
-  return 1000 / FPS
-}
-
-function getAlertText(bonusText) {
-  return(
-`
-Goal!
-
-${bonusText}
-`
+  // Top rim left
+  ctx.lineTo(x - cupInnerTopWidth / 2, cupTopY)
+  // Inner left edge
+  ctx.lineTo(x - cupInnerTopWidth / 2, cupTopY + scaledRadius * 0.1)
+  // Inner bottom curve (symmetric)
+  ctx.quadraticCurveTo(x, cupTopY + scaledRadius * 0.15, x + cupInnerTopWidth / 2, cupTopY + scaledRadius * 0.1)
+  // Inner right edge
+  ctx.lineTo(x + cupInnerTopWidth / 2, cupTopY)
+  // Top rim right
+  ctx.lineTo(x + cupTopWidth / 2, cupTopY)
+  // Right side curve (symmetric to left)
+  ctx.quadraticCurveTo(
+    x + cupTopWidth / 2, (cupBottomY + cupTopY) / 2,
+    x + cupBottomWidth / 2, cupBottomY
   )
-}
-
-// ai swap/rotate code 
-
-let swapAnimation = null
-
-function handleTouchstartToRotate() {
-  let cannonHandle = getCannonHandle()
-  if (isClose(touch1, cannonHandle, BALL_RADIUS)) {
-    rotatingObstacle = cannon
-    return
-  }
-  let wallEnds = getWallEnds()
-  if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
-    rotatingObstacle = wall
-    return
-  }
-}
-
-function handleTouchstartToSwap() {
-  if (swapAnimation) return
-  let tappedObstacle = getTappedObstacle(touch1)
-  if (tappedObstacle && tappedObstacle.isEnabled) {
-    if (selectedObstacle && selectedObstacle !== tappedObstacle) {
-      startSwapAnimation(selectedObstacle, tappedObstacle)
-      selectedObstacle = null
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  // Trophy handles (perfectly symmetrical C-shaped handles)
+  let handleRadius = scaledRadius * 0.2
+  let handleXOffset = scaledRadius * 0.45
+  let handleY = y - scaledRadius * 0.05
+  let handleThickness = scaledRadius * 0.12
+  // Left handle (C-shaped, opening to the right)
+  ctx.beginPath()
+  ctx.arc(x - handleXOffset, handleY, handleRadius, Math.PI * 0.5, Math.PI * 1.5, false)
+  ctx.lineWidth = handleThickness
+  ctx.lineCap = "round"
+  ctx.stroke()
+  // Right handle (C-shaped, opening to the left, perfectly mirrored)
+  ctx.beginPath()
+  ctx.arc(x + handleXOffset, handleY, handleRadius, Math.PI * 1.5, Math.PI * 0.5, false)
+  ctx.stroke()
+  // Star on top (perfectly centered, 5-pointed star)
+  ctx.fillStyle = "#ffd700"
+  ctx.strokeStyle = "#ffaa00"
+  ctx.lineWidth = Math.max(1, radius * 0.05)
+  ctx.beginPath()
+  let starX = x
+  let starY = y - scaledRadius * 0.4
+  let starOuterRadius = scaledRadius * 0.15
+  let starInnerRadius = starOuterRadius * 0.5
+  let starPoints = 5
+  //
+  for (let i = 0; i < starPoints * 2; i++) {
+    let angle = (Math.PI * i) / starPoints - Math.PI / 2
+    let r = (i % 2 === 0) ? starOuterRadius : starInnerRadius
+    let px = starX + Math.cos(angle) * r
+    let py = starY + Math.sin(angle) * r
+    if (i === 0) {
+      ctx.moveTo(px, py)
     } else {
-      selectedObstacle = tappedObstacle
-    }
-  } else {
-    selectedObstacle = null
-  }
-}
-
-function handleTouchstartToSwapLetters() {
-  if (!hasFlung || letterSwapAnimation) return
-  let tappedLetter = getTappedLetter(touch1)
-  if (tappedLetter) {
-    if (selectedLetter && selectedLetter !== tappedLetter) {
-      startLetterSwapAnimation(selectedLetter, tappedLetter)
-      selectedLetter = null
-    } else {
-      selectedLetter = tappedLetter
-    }
-  } else {
-    selectedLetter = null
-  }
-}
-
-function getTappedLetter(touch) {
-  for (let letter of swappableLetters) {
-    // Check if touch is within the circle bounds
-    let radius = LETTER_SQUARE_SIZE / 2
-    let dx = touch.xPos - letter.xPos
-    let dy = touch.yPos - letter.yPos
-    let distance = Math.hypot(dx, dy)
-    if (distance <= radius) {
-      return letter
+      ctx.lineTo(px, py)
     }
   }
-  return null
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  //
+  ctx.restore()
 }
 
-function startLetterSwapAnimation(letterA, letterB) {
-  letterSwapAnimation = {
-    letterA: letterA,
-    letterB: letterB,
-    startAX: letterA.xPos,
-    startAY: letterA.yPos,
-    startBX: letterB.xPos,
-    startBY: letterB.yPos,
-    progress: 0
-  }
-}
-
-function updateLetterSwapAnimation() {
-  if (!letterSwapAnimation) return
-  letterSwapAnimation.progress++
-  let t = letterSwapAnimation.progress / SWAP_DURATION
-  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-  letterSwapAnimation.letterA.xPos = letterSwapAnimation.startAX + (letterSwapAnimation.startBX - letterSwapAnimation.startAX) * eased
-  letterSwapAnimation.letterA.yPos = letterSwapAnimation.startAY + (letterSwapAnimation.startBY - letterSwapAnimation.startAY) * eased
-  letterSwapAnimation.letterB.xPos = letterSwapAnimation.startBX + (letterSwapAnimation.startAX - letterSwapAnimation.startBX) * eased
-  letterSwapAnimation.letterB.yPos = letterSwapAnimation.startBY + (letterSwapAnimation.startAY - letterSwapAnimation.startBY) * eased
-  if (letterSwapAnimation.progress >= SWAP_DURATION) {
-    letterSwapAnimation.letterA.xPos = letterSwapAnimation.startBX
-    letterSwapAnimation.letterA.yPos = letterSwapAnimation.startBY
-    letterSwapAnimation.letterB.xPos = letterSwapAnimation.startAX
-    letterSwapAnimation.letterB.yPos = letterSwapAnimation.startAY
-    letterSwapAnimation = null
-  }
-}
-
-function handleTouchmoveToRotate(touch2) {
-  if (rotatingObstacle === cannon) {
-    let dx = touch2.xPos - cannon.xPos
-    let dy = touch2.yPos - cannon.yPos
-    cannon.angle = Math.atan2(-dx, dy)
-  }
-  if (rotatingObstacle === wall) {
-    let dx = touch2.xPos - wall.xPos
-    let dy = touch2.yPos - wall.yPos
-    wall.angle = Math.atan2(dy, dx)
-    let wallLength = Math.sqrt(dx * dx + dy * dy)
-    wall.length = Math.max(WALL_LENGTH, wallLength)
-  }
-}
-
-function getCannonHandle() { 
-  return {
-    xPos: cannon.xPos - Math.sin(cannon.angle) * BALL_RADIUS * 1.5,
-    yPos: cannon.yPos + Math.cos(cannon.angle) * BALL_RADIUS * 1.5
-  }
-}
-
-function getWallEnds() {
-  let dirX = Math.cos(wall.angle)
-  let dirY = Math.sin(wall.angle)
-  return {
-    a: { 
-      xPos: wall.xPos, 
-      yPos: wall.yPos 
-    },
-    b: { 
-      xPos: wall.xPos + wall.length * dirX, 
-      yPos: wall.yPos + wall.length * dirY 
+function drawPlayBorder() {
+  // Calculate the bounding rectangle from all letters (for touch detection)
+  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
+  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
+  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
+  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
+  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
+  //
+  let rectWidth = rightX - leftX
+  let rectHeight = bottomY - topY
+  //
+  ctx.save()
+  //
+  let time = Date.now() * 0.01
+  //
+  // Draw multiple layers for electricity effect around the bounding rectangle
+  for (let layer = 0; layer < 3; layer++) {
+    let opacity = layer === 0 ? 0.3 : (layer === 1 ? 0.6 : 0.8)
+    let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
+    //
+    ctx.strokeStyle = layer === 0 
+      ? `rgba(77, 208, 225, ${opacity})`
+      : layer === 1
+      ? `rgba(150, 230, 240, ${opacity})`
+      : `rgba(170, 235, 245, ${opacity})`
+    ctx.lineWidth = lineWidth
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
+    //
+    // Create jagged border effect
+    let segments = 32
+    ctx.beginPath()
+    //
+    // Top edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let x = leftX + rectWidth * t
+      let jitter = Math.sin(time * 2 + i * 0.5) * 2 + Math.cos(time * 1.5 + i * 0.7) * 2
+      let y = topY + jitter * (layer === 0 ? 1 : 0.5)
+      if (i === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
     }
-  }
-}
-
-function getTappedObstacle(touch) {
-  for (let obstacle of swappableObstacles) {
-    if (isClose(touch, obstacle, BALL_RADIUS)) {
-      return obstacle
+    //
+    // Right edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let y = topY + rectHeight * t
+      let jitter = Math.sin(time * 2 + (segments / 4 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments / 4 + i) * 0.7) * 2
+      let x = rightX + jitter * (layer === 0 ? 1 : 0.5)
+      ctx.lineTo(x, y)
     }
+    //
+    // Bottom edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let x = rightX - rectWidth * t
+      let jitter = Math.sin(time * 2 + (segments / 2 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments / 2 + i) * 0.7) * 2
+      let y = bottomY + jitter * (layer === 0 ? 1 : 0.5)
+      ctx.lineTo(x, y)
+    }
+    //
+    // Left edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let y = bottomY - rectHeight * t
+      let jitter = Math.sin(time * 2 + (segments * 3 / 4 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments * 3 / 4 + i) * 0.7) * 2
+      let x = leftX + jitter * (layer === 0 ? 1 : 0.5)
+      ctx.lineTo(x, y)
+    }
+    //
+    ctx.closePath()
+    ctx.stroke()
   }
-  return null
-}
-
-function startSwapAnimation(obstacleA, obstacleB) {
-  swapAnimation = {
-    obstacleA: obstacleA,
-    obstacleB: obstacleB,
-    startAX: obstacleA.xPos,
-    startAY: obstacleA.yPos,
-    startBX: obstacleB.xPos,
-    startBY: obstacleB.yPos,
-    progress: 0
-  }
-}
-
-function updateSwapAnimation() {
-  if (!swapAnimation) return
-  swapAnimation.progress++
-  let t = swapAnimation.progress / SWAP_DURATION
-  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-  swapAnimation.obstacleA.xPos = swapAnimation.startAX + (swapAnimation.startBX - swapAnimation.startAX) * eased
-  swapAnimation.obstacleA.yPos = swapAnimation.startAY + (swapAnimation.startBY - swapAnimation.startAY) * eased
-  swapAnimation.obstacleB.xPos = swapAnimation.startBX + (swapAnimation.startAX - swapAnimation.startBX) * eased
-  swapAnimation.obstacleB.yPos = swapAnimation.startBY + (swapAnimation.startAY - swapAnimation.startBY) * eased
-  if (swapAnimation.progress >= SWAP_DURATION) {
-    swapAnimation.obstacleA.xPos = swapAnimation.startBX
-    swapAnimation.obstacleA.yPos = swapAnimation.startBY
-    swapAnimation.obstacleB.xPos = swapAnimation.startAX
-    swapAnimation.obstacleB.yPos = swapAnimation.startAY
-    swapAnimation = null
-  }
+  //
+  ctx.restore()
 }
