@@ -860,14 +860,14 @@ function drawKey() {
     ctx.save()
     ctx.translate(key.xPos, key.yPos)
     ctx.rotate(-Math.PI / 4)
-    
+    //
     // Key Head (ring)
     ctx.beginPath()
     ctx.arc(-KEY_SIZE * 0.4, 0, KEY_SIZE * 0.4, 0, 2 * Math.PI)
     ctx.strokeStyle = color
     ctx.lineWidth = KEY_SIZE * 0.2
     ctx.stroke()
-    
+    //
     // Key Shaft
     ctx.beginPath()
     ctx.moveTo(0, 0)
@@ -875,7 +875,7 @@ function drawKey() {
     ctx.lineWidth = KEY_SIZE * 0.16
     ctx.lineCap = "round"
     ctx.stroke()
-    
+    //
     // Key Teeth
     ctx.beginPath()
     ctx.moveTo(KEY_SIZE * 0.6, 0)
@@ -885,9 +885,9 @@ function drawKey() {
     ctx.lineWidth = KEY_SIZE * 0.16
     ctx.lineCap = "round"
     ctx.stroke()
-    
+    //
     ctx.restore()
-
+    //
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
