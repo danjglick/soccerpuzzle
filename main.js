@@ -96,27 +96,22 @@ function showMenu() {
 }
 
 function initializeLetterPositions() {
-  // Calculate positions for "p   y   a   l" with spacing
   let baseX = playButton.xPos
   let baseY = playButton.yPos
   let letterSpacing = LETTER_SQUARE_SIZE // No spacing between squares
   let startX = baseX - (letterSpacing * 1.5) // Center the 4 letters
-  
   letterP.xPos = startX
   letterP.yPos = baseY
   letterP.originalX = startX
   letterP.originalY = baseY
-  
   letterY.xPos = startX + letterSpacing
   letterY.yPos = baseY
   letterY.originalX = startX + letterSpacing
   letterY.originalY = baseY
-  
   letterA.xPos = startX + letterSpacing * 2
   letterA.yPos = baseY
   letterA.originalX = startX + letterSpacing * 2
   letterA.originalY = baseY
-  
   letterL.xPos = startX + letterSpacing * 3
   letterL.yPos = baseY
   letterL.originalX = startX + letterSpacing * 3
@@ -128,11 +123,11 @@ function generateLevel() {
   showWelcome = false
   showTitle = false
   hasFlung = false
+  spawnedObstacles = []
+  selectedObstacle = null
   spawnBall()
   spawnGoal()
-  spawnedObstacles = []
   for (let i = 0; i < obstacles.length; i++) spawnObstacle(obstacles[i])
-  selectedObstacle = null
   cheatTaps = 0 // cheat
 }
 
@@ -159,17 +154,7 @@ function handleTouchstart(e) {
     ball.isBeingFlung = true
     return
   }
-  if (
-    showTitle && 
-    touch1.xPos > canvas.width * .4 &&
-    touch1.xPos < canvas.width * .6 &&
-    touch1.yPos > canvas.height * .5 &&
-    touch1.yPos < canvas.height * .7
-  ) {
-    //generateLevel()
-  }
-  // Check if tapping on "play" rectangle when correctly spelled
-  if (hasFlung && isPlaySpelledCorrectly()) {
+  if (hasFlung && isPlaySpelledCorrectly()) { // Check if tapping on "play" rectangle when correctly spelled
     if (isTouchingPlayRectangle(touch1)) {
       generateLevel()
       return
@@ -182,18 +167,17 @@ function handleTouchstart(e) {
 }
 
 function isTouchingPlayRectangle(touch) {
-  // Calculate the circle bounds from all letters
   let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
   let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
   let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
   let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
   let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
-  
-  // Check if touch is within the bounding rectangle of all circles
-  return touch.xPos >= leftX &&
-         touch.xPos <= rightX &&F
-         touch.yPos >= topY &&
-         touch.yPos <= bottomY
+  return(
+    touch.xPos >= leftX &&
+    touch.xPos <= rightX &&
+    touch.yPos >= topY &&
+    touch.yPos <= bottomY
+  )
 }
 
 function handleTouchmove(e) {
@@ -313,13 +297,7 @@ function handleGoal() {
         trophyCount++
         bonusText = "+ Bonus!"
       }
-      alert(
-`
-Goal!
-
-${bonusText}
-`
-      )
+      alert(getAlertText(bonusText))
       generateLevel()
     }
   }
@@ -444,7 +422,6 @@ function draw() {
     drawBonus()
   }
   if (!isBallHidden) drawBall()
-  //drawSelectionBorder()
   drawSelectionElectricity()
   drawSwapAnimationElectricity()
   //drawSwappableBorders()
@@ -944,38 +921,29 @@ function drawBonus() {
   }
 }
 
-function drawSelectionBorder() {
-  if (!selectedObstacle) return
-  ctx.beginPath()
-  ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
-  ctx.strokeStyle = "green"
-  ctx.lineWidth = 4
-  ctx.stroke()
-}
-
 function drawElectricityLine(fromX, fromY, toX, toY) {
   ctx.save()
-  
+  //
   // Calculate distance and direction
   let dx = toX - fromX
   let dy = toY - fromY
   let distance = Math.hypot(dx, dy)
-  
+  //
   if (distance < 1) {
     ctx.restore()
     return
   }
-  
+  //
   // Normalize direction
   let nx = dx / distance
   let ny = dy / distance
   // Perpendicular direction for offsets
   let px = -ny
   let py = nx
-  
+  //
   // Time-based animation for electricity flicker
   let time = Date.now() * 0.01
-  
+  //
   // Draw glow effect (outer layer)
   ctx.strokeStyle = "rgba(77, 208, 225, 0.3)"
   ctx.lineWidth = 8
@@ -985,40 +953,40 @@ function drawElectricityLine(fromX, fromY, toX, toY) {
   ctx.moveTo(fromX, fromY)
   ctx.lineTo(toX, toY)
   ctx.stroke()
-  
+  //
   // Draw main electricity line with jagged segments
   let segments = Math.max(5, Math.floor(distance / 30))
-  
+  //
   // Draw multiple electricity arcs for effect
   for (let arc = 0; arc < 3; arc++) {
     ctx.strokeStyle = arc === 0 ? "#4dd0e1" : "rgba(150, 230, 240, 0.6)"
     ctx.lineWidth = arc === 0 ? 2 : 1
-    
+    //
     ctx.beginPath()
     ctx.moveTo(fromX, fromY)
-    
+    //
     for (let i = 1; i < segments; i++) {
       let t = i / segments
       // Base position along the line
       let baseX = fromX + dx * t
       let baseY = fromY + dy * t
-      
+      //
       // Add random offset perpendicular to the line (electricity jitter)
       // Use time and position to create animated noise
       let noise1 = Math.sin(time + i * 3.7 + arc * 2.1) * 0.5 + Math.sin(time * 1.3 + i * 2.3) * 0.5
       let noise2 = Math.cos(time * 0.8 + i * 4.1 + arc * 1.7) * 0.5 + Math.cos(time * 1.7 + i * 1.9) * 0.5
       let offset = (noise1 + noise2) * 12 * (1 - Math.abs(t - 0.5) * 2) // Stronger in middle
-      
+      //
       let jitterX = baseX + px * offset
       let jitterY = baseY + py * offset
-      
+      //
       ctx.lineTo(jitterX, jitterY)
     }
-    
+    //
     ctx.lineTo(toX, toY)
     ctx.stroke()
   }
-  
+  //
   // Draw bright core
   ctx.strokeStyle = "#aae6f0"
   ctx.lineWidth = 1
@@ -1026,16 +994,16 @@ function drawElectricityLine(fromX, fromY, toX, toY) {
   ctx.moveTo(fromX, fromY)
   ctx.lineTo(toX, toY)
   ctx.stroke()
-  
+  //
   // Add small spark effects at both ends
   let sparkCount = 3
   for (let i = 0; i < sparkCount; i++) {
     let sparkAngle = time * 2 + i * (Math.PI * 2 / sparkCount)
     let sparkLen = 8 + Math.sin(time * 3 + i) * 4
-    
+    //
     ctx.strokeStyle = "rgba(150, 230, 240, 0.8)"
     ctx.lineWidth = 1
-    
+    //
     // Spark at from end
     ctx.beginPath()
     ctx.moveTo(fromX, fromY)
@@ -1044,7 +1012,7 @@ function drawElectricityLine(fromX, fromY, toX, toY) {
       fromY + Math.sin(sparkAngle) * sparkLen
     )
     ctx.stroke()
-    
+    //
     // Spark at to end
     ctx.beginPath()
     ctx.moveTo(toX, toY)
@@ -1054,34 +1022,34 @@ function drawElectricityLine(fromX, fromY, toX, toY) {
     )
     ctx.stroke()
   }
-  
+  //
   ctx.restore()
 }
 
 function drawSelectionElectricity() {
   if (!selectedObstacle || !selectedObstacle.isEnabled || isBallHidden) return
-  
+  //
   let ballX = ball.xPos
   let ballY = ball.yPos
   let spriteX = selectedObstacle.xPos
   let spriteY = selectedObstacle.yPos
-  
+  //
   drawElectricityLine(spriteX, spriteY, ballX, ballY)
 }
 
 function drawSwapAnimationElectricity() {
   if (!swapAnimation || isBallHidden) return
-  
+  //
   let ballX = ball.xPos
   let ballY = ball.yPos
-  
+  //
   // Draw electricity to obstacleA
   if (swapAnimation.obstacleA && swapAnimation.obstacleA.isEnabled) {
     let aX = swapAnimation.obstacleA.xPos
     let aY = swapAnimation.obstacleA.yPos
     drawElectricityLine(aX, aY, ballX, ballY)
   }
-  
+  //
   // Draw electricity to obstacleB
   if (swapAnimation.obstacleB && swapAnimation.obstacleB.isEnabled) {
     let bX = swapAnimation.obstacleB.xPos
@@ -1093,24 +1061,24 @@ function drawSwapAnimationElectricity() {
 function drawSwappableBorders() {
   // Only show borders when an obstacle is selected and swap hasn't started
   if (!selectedObstacle || swapAnimation || isBallHidden) return
-  
+  //
   let time = Date.now() * 0.01
-  
+  //
   for (let obstacle of swappableObstacles) {
     // Skip the selected obstacle (it has its own green border)
     if (obstacle === selectedObstacle || !obstacle.isEnabled) continue
-    
+    //
     ctx.save()
-    
+    //
     // Pulsing teal electricity border
     let pulse = 1
     let radius = BALL_RADIUS * 1.3
-    
+    //
     // Draw multiple layers for electricity effect
     for (let layer = 0; layer < 3; layer++) {
       let opacity = layer === 0 ? 0.3 * pulse : (layer === 1 ? 0.6 * pulse : 0.8 * pulse)
       let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
-      
+      //
       ctx.strokeStyle = layer === 0 
         ? `rgba(77, 208, 225, ${opacity})`
         : layer === 1
@@ -1118,7 +1086,7 @@ function drawSwappableBorders() {
         : `rgba(170, 235, 245, ${opacity})`
       ctx.lineWidth = lineWidth
       ctx.lineCap = "round"
-      
+      //
       // Create jagged border effect
       let segments = 16
       ctx.beginPath()
@@ -1134,7 +1102,7 @@ function drawSwappableBorders() {
       ctx.closePath()
       ctx.stroke()
     }
-    
+    //
     // Add spark effects around the border
     let sparkCount = 6
     for (let i = 0; i < sparkCount; i++) {
@@ -1142,7 +1110,7 @@ function drawSwappableBorders() {
       let sparkLen = 5 + Math.sin(time * 3 + i) * 3
       let sparkX = obstacle.xPos + Math.cos(sparkAngle) * radius
       let sparkY = obstacle.yPos + Math.sin(sparkAngle) * radius
-      
+      //
       ctx.strokeStyle = `rgba(150, 230, 240, ${0.8 * pulse})`
       ctx.lineWidth = 1
       ctx.beginPath()
@@ -1153,7 +1121,7 @@ function drawSwappableBorders() {
       )
       ctx.stroke()
     }
-    
+    //
     ctx.restore()
   }
 }
@@ -1161,12 +1129,12 @@ function drawSwappableBorders() {
 function getCircleBorderPoint(letterX, letterY, targetX, targetY) {
   // Calculate circle radius
   let radius = LETTER_SQUARE_SIZE / 2
-  
+  //
   // Find intersection point of line from target (ball) to letter center with circle border
   let dx = letterX - targetX
   let dy = letterY - targetY
   let distance = Math.hypot(dx, dy)
-  
+  //
   // If target is inside or at center, return point on circle in direction of target
   if (distance < radius || distance === 0) {
     // Return point on circle in the direction from center to target
@@ -1176,12 +1144,12 @@ function getCircleBorderPoint(letterX, letterY, targetX, targetY) {
       y: letterY + Math.sin(angle) * radius
     }
   }
-  
+  //
   // Calculate intersection with circle
   // Normalize direction vector
   let nx = dx / distance
   let ny = dy / distance
-  
+  //
   // Point on circle in direction from target to letter center
   return {
     x: letterX - nx * radius,
@@ -1191,20 +1159,20 @@ function getCircleBorderPoint(letterX, letterY, targetX, targetY) {
 
 function drawLetterSelectionBorder() {
   if (!selectedLetter || !hasFlung) return
-  
+  //
   let letterX = selectedLetter.xPos
   let letterY = selectedLetter.yPos
   let radius = LETTER_SQUARE_SIZE / 2
-  
+  //
   ctx.save()
-  
+  //
   let time = Date.now() * 0.01
-  
+  //
   // Draw multiple layers for electricity effect
   for (let layer = 0; layer < 3; layer++) {
     let opacity = layer === 0 ? 0.3 : (layer === 1 ? 0.6 : 0.8)
     let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
-    
+    //
     ctx.strokeStyle = layer === 0 
       ? `rgba(77, 208, 225, ${opacity})`
       : layer === 1
@@ -1213,11 +1181,11 @@ function drawLetterSelectionBorder() {
     ctx.lineWidth = lineWidth
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
-    
+    //
     // Create jagged border effect around the circle
     let segments = 32
     ctx.beginPath()
-    
+    //
     for (let i = 0; i <= segments; i++) {
       let angle = (i / segments) * Math.PI * 2
       let jitter = Math.sin(time * 2 + i * 0.5) * 2 + Math.cos(time * 1.5 + i * 0.7) * 2
@@ -1227,11 +1195,11 @@ function drawLetterSelectionBorder() {
       if (i === 0) ctx.moveTo(x, y)
       else ctx.lineTo(x, y)
     }
-    
+    //
     ctx.closePath()
     ctx.stroke()
   }
-  
+  //
   // Add spark effects around the circle
   let sparkCount = 8
   for (let i = 0; i < sparkCount; i++) {
@@ -1239,7 +1207,7 @@ function drawLetterSelectionBorder() {
     let sparkLen = 5 + Math.sin(time * 3 + i) * 3
     let sparkX = letterX + Math.cos(sparkAngle) * radius
     let sparkY = letterY + Math.sin(sparkAngle) * radius
-    
+    //
     ctx.strokeStyle = `rgba(150, 230, 240, 0.8)`
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -1250,30 +1218,30 @@ function drawLetterSelectionBorder() {
     )
     ctx.stroke()
   }
-  
+  //
   ctx.restore()
 }
 
 function drawLetterSelectionElectricity() {
   if (!selectedLetter || !hasFlung) return
-  
+  //
   let ballX = ball.xPos
   let ballY = ball.yPos
   let letterX = selectedLetter.xPos
   let letterY = selectedLetter.yPos
-  
+  //
   // Get the point on the circle border closest to the ball
   let borderPoint = getCircleBorderPoint(letterX, letterY, ballX, ballY)
-  
+  //
   drawElectricityLine(borderPoint.x, borderPoint.y, ballX, ballY)
 }
 
 function drawLetterSwapAnimationElectricity() {
   if (!letterSwapAnimation || !hasFlung) return
-  
+  //
   let ballX = ball.xPos
   let ballY = ball.yPos
-  
+  //
   // Draw electricity to letterA
   if (letterSwapAnimation.letterA) {
     let aX = letterSwapAnimation.letterA.xPos
@@ -1281,7 +1249,7 @@ function drawLetterSwapAnimationElectricity() {
     let borderPoint = getCircleBorderPoint(aX, aY, ballX, ballY)
     drawElectricityLine(borderPoint.x, borderPoint.y, ballX, ballY)
   }
-  
+  //
   // Draw electricity to letterB
   if (letterSwapAnimation.letterB) {
     let bX = letterSwapAnimation.letterB.xPos
@@ -1300,6 +1268,16 @@ function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
 
 function getMSPerFrame() {
   return 1000 / FPS
+}
+
+function getAlertText(bonusText) {
+  return(
+`
+Goal!
+
+${bonusText}
+`
+  )
 }
 
 // ai swap/rotate code 
