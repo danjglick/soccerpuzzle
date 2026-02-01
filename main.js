@@ -21,6 +21,7 @@ const SWAP_DURATION = 20
 const KEY_SIZE = BALL_RADIUS * 0.75
 const POINTS_TO_WIN = 5
 const LEVELS = ["Quarterfinals", "Semifinals", "Championship"]
+const TROPHY_SIZE = BALL_RADIUS * 0.6
 
 let canvas;
 let ctx;
@@ -58,6 +59,7 @@ let showTitle = false
 let isBallHidden = true
 let hasFlung = false
 let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
+let trophyCount = 0
 
 function handleCheatTap() {
   if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
@@ -331,12 +333,22 @@ function handleGoal() {
       ball.xPos = goal.xPos
       ball.yPos = goal.yPos
       ball.yPos = GOAL_HEIGHT
+      trophyCount++
+      let bonusText = "(no bonus)"
       //setTimeout(() => incrementScore(), 2000)
       if (!bonus.isEnabled) {
+        trophyCount++
+        bonusText = "+ Bonus!"
         //setTimeout(() => incrementScore(), 3000)
       }
       //setTimeout(() => generateLevel(), !bonus.isEnabled ? 5000 : 4000)
-      alert("Goal!")
+      alert(
+`
+Goal!
+
+${bonusText}
+`
+      )
       generateLevel()
     }
   }
@@ -478,6 +490,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawMenu()
   //drawScore()
+  drawTrophies()
   drawGoal()
   //drawOwnGoal()
   if (!areObstaclesHidden) {
@@ -644,6 +657,136 @@ function drawScore() {
   ctx.fillText(`${LEVELS[levelIndex]}`, 0, BALL_RADIUS)
   ctx.fillText(`${playerScore}-${enemyScore}`, canvas.width - canvas.width / 9, canvas.height / 37)  
   //ctx.fillText(`first to 3`, canvas.width - canvas.width / 4.5, canvas.height / 37) 
+}
+
+function drawTrophies() {
+  // Draw trophies horizontally starting from top left corner
+  let startX = TROPHY_SIZE
+  let startY = TROPHY_SIZE
+  let spacing = TROPHY_SIZE * 2.5 // Space between trophies
+  
+  for (let i = 0; i < trophyCount; i++) {
+    let x = startX + i * spacing
+    let y = startY
+    drawTrophy(x, y)
+  }
+}
+
+function drawTrophy(x, y) {
+  ctx.save()
+  
+  // Use TROPHY_SIZE as the base radius for scaling
+  let radius = TROPHY_SIZE
+  // Scale factor to make trophy appear as large as a circle with the same radius
+  let scale = 1.6
+  let scaledRadius = radius * scale
+  
+  // Draw trophy in gold/yellow with gradient
+  let gradient = ctx.createLinearGradient(x, y - scaledRadius, x, y + scaledRadius)
+  gradient.addColorStop(0, "#ffed4e") // Lighter gold at top
+  gradient.addColorStop(0.5, "#ffd700") // Gold in middle
+  gradient.addColorStop(1, "#daa520") // Darker gold at bottom
+  ctx.fillStyle = gradient
+  ctx.strokeStyle = "#b8860b" // Dark gold for outline
+  ctx.lineWidth = Math.max(1, radius * 0.1)
+  
+  // Trophy base (bottom, wider and perfectly centered)
+  let baseWidth = scaledRadius * 1.0
+  let baseHeight = scaledRadius * 0.15
+  let baseY = y + scaledRadius * 0.35
+  ctx.beginPath()
+  ctx.rect(x - baseWidth / 2, baseY, baseWidth, baseHeight)
+  ctx.fill()
+  ctx.stroke()
+  
+  // Trophy stem/pedestal (connects base to cup, perfectly centered)
+  let stemWidth = scaledRadius * 0.3
+  let stemHeight = scaledRadius * 0.2
+  let stemY = y + scaledRadius * 0.15
+  ctx.beginPath()
+  ctx.rect(x - stemWidth / 2, stemY, stemWidth, stemHeight)
+  ctx.fill()
+  ctx.stroke()
+  
+  // Trophy cup/bowl (main body, perfectly symmetrical)
+  let cupBottomY = stemY
+  let cupTopY = y - scaledRadius * 0.3
+  let cupBottomWidth = scaledRadius * 0.4
+  let cupTopWidth = scaledRadius * 0.7
+  let cupInnerTopWidth = scaledRadius * 0.4
+  
+  ctx.beginPath()
+  // Start at bottom left
+  ctx.moveTo(x - cupBottomWidth / 2, cupBottomY)
+  // Left side curve (symmetric)
+  ctx.quadraticCurveTo(
+    x - cupTopWidth / 2, (cupBottomY + cupTopY) / 2,
+    x - cupTopWidth / 2, cupTopY
+  )
+  // Top rim left
+  ctx.lineTo(x - cupInnerTopWidth / 2, cupTopY)
+  // Inner left edge
+  ctx.lineTo(x - cupInnerTopWidth / 2, cupTopY + scaledRadius * 0.1)
+  // Inner bottom curve (symmetric)
+  ctx.quadraticCurveTo(x, cupTopY + scaledRadius * 0.15, x + cupInnerTopWidth / 2, cupTopY + scaledRadius * 0.1)
+  // Inner right edge
+  ctx.lineTo(x + cupInnerTopWidth / 2, cupTopY)
+  // Top rim right
+  ctx.lineTo(x + cupTopWidth / 2, cupTopY)
+  // Right side curve (symmetric to left)
+  ctx.quadraticCurveTo(
+    x + cupTopWidth / 2, (cupBottomY + cupTopY) / 2,
+    x + cupBottomWidth / 2, cupBottomY
+  )
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  
+  // Trophy handles (perfectly symmetrical C-shaped handles)
+  let handleRadius = scaledRadius * 0.2
+  let handleXOffset = scaledRadius * 0.45
+  let handleY = y - scaledRadius * 0.05
+  let handleThickness = scaledRadius * 0.12
+  
+  // Left handle (C-shaped, opening to the right)
+  ctx.beginPath()
+  ctx.arc(x - handleXOffset, handleY, handleRadius, Math.PI * 0.5, Math.PI * 1.5, false)
+  ctx.lineWidth = handleThickness
+  ctx.lineCap = "round"
+  ctx.stroke()
+  
+  // Right handle (C-shaped, opening to the left, perfectly mirrored)
+  ctx.beginPath()
+  ctx.arc(x + handleXOffset, handleY, handleRadius, Math.PI * 1.5, Math.PI * 0.5, false)
+  ctx.stroke()
+  
+  // Star on top (perfectly centered, 5-pointed star)
+  ctx.fillStyle = "#ffd700"
+  ctx.strokeStyle = "#ffaa00"
+  ctx.lineWidth = Math.max(1, radius * 0.05)
+  ctx.beginPath()
+  let starX = x
+  let starY = y - scaledRadius * 0.4
+  let starOuterRadius = scaledRadius * 0.15
+  let starInnerRadius = starOuterRadius * 0.5
+  let starPoints = 5
+  
+  for (let i = 0; i < starPoints * 2; i++) {
+    let angle = (Math.PI * i) / starPoints - Math.PI / 2
+    let r = (i % 2 === 0) ? starOuterRadius : starInnerRadius
+    let px = starX + Math.cos(angle) * r
+    let py = starY + Math.sin(angle) * r
+    if (i === 0) {
+      ctx.moveTo(px, py)
+    } else {
+      ctx.lineTo(px, py)
+    }
+  }
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  
+  ctx.restore()
 }
 
 function drawBall() {
