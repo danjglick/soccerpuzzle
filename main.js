@@ -55,6 +55,8 @@ let hasFlung = false
 let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
 let trophyCount = 0
 
+// initialize
+
 function handleCheatTap() {
   if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 2)) { 
     cheatTaps++ 
@@ -83,39 +85,18 @@ function initialize() {
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
-  showMenu()
+  generateMenu()
 }
 
-function showMenu() {
+// generate
+
+function generateMenu() {
   areObstaclesHidden = true
   setTimeout(() => showWelcome = true, 1000)
   setTimeout(() => showTitle = true, 2000)
-  setTimeout(() => { spawnBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
+  setTimeout(() => { generateBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
   initializeLetterPositions()
   loopGame()  
-}
-
-function initializeLetterPositions() {
-  let baseX = playButton.xPos
-  let baseY = playButton.yPos
-  let letterSpacing = LETTER_SQUARE_SIZE // No spacing between squares
-  let startX = baseX - (letterSpacing * 1.5) // Center the 4 letters
-  letterP.xPos = startX
-  letterP.yPos = baseY
-  letterP.originalX = startX
-  letterP.originalY = baseY
-  letterY.xPos = startX + letterSpacing
-  letterY.yPos = baseY
-  letterY.originalX = startX + letterSpacing
-  letterY.originalY = baseY
-  letterA.xPos = startX + letterSpacing * 2
-  letterA.yPos = baseY
-  letterA.originalX = startX + letterSpacing * 2
-  letterA.originalY = baseY
-  letterL.xPos = startX + letterSpacing * 3
-  letterL.yPos = baseY
-  letterL.originalX = startX + letterSpacing * 3
-  letterL.originalY = baseY
 }
 
 function generateLevel() {
@@ -125,13 +106,13 @@ function generateLevel() {
   hasFlung = false
   spawnedObstacles = []
   selectedObstacle = null
-  spawnBall()
-  spawnGoal()
-  for (let i = 0; i < obstacles.length; i++) spawnObstacle(obstacles[i])
+  generateBall()
+  generateGoal()
+  for (let i = 0; i < obstacles.length; i++) generateObstacle(obstacles[i])
   cheatTaps = 0 // cheat
 }
 
-function spawnBall() {
+function generateBall() {
   let spawn = {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
     yPos: canvas.height - BALL_RADIUS
@@ -147,53 +128,7 @@ function spawnBall() {
   }
 }
 
-function handleTouchstart(e) {
-  touch1.xPos = e.touches[0].clientX
-  touch1.yPos = e.touches[0].clientY
-  if (isClose(touch1, ball, BALL_RADIUS)) {
-    ball.isBeingFlung = true
-    return
-  }
-  if (hasFlung && isPlaySpelledCorrectly()) { // Check if tapping on "play" rectangle when correctly spelled
-    if (isTouchingPlayRectangle(touch1)) {
-      generateLevel()
-      return
-    }
-  }
-  handleTouchstartToRotate()
-  handleTouchstartToSwap()
-  handleTouchstartToSwapLetters()
-  handleCheatTap()
-}
-
-function isTouchingPlayRectangle(touch) {
-  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
-  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
-  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
-  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
-  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
-  return(
-    touch.xPos >= leftX &&
-    touch.xPos <= rightX &&
-    touch.yPos >= topY &&
-    touch.yPos <= bottomY
-  )
-}
-
-function handleTouchmove(e) {
-  e.preventDefault()
-  let touch2 = { 
-    xPos: e.touches[0].clientX, 
-    yPos: e.touches[0].clientY 
-  }
-  if (ball.isBeingFlung) {
-    ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
-    ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
-  }
-  handleTouchmoveToRotate(touch2)
-}
-
-function spawnGoal() {
+function generateGoal() {
   goal = {
     xPos: GOAL_WIDTH + (canvas.width - 2 * GOAL_WIDTH) * Math.random(),
     yPos: 0,
@@ -201,7 +136,7 @@ function spawnGoal() {
   }
 }
 
-function spawnObstacle(obstacle) {
+function generateObstacle(obstacle) {
   obstacle.isEnabled = true
   obstacle.angle = Math.random() * 2 * Math.PI
   obstacle.xVel = 0
@@ -242,10 +177,7 @@ function spawnObstacle(obstacle) {
   })
 }
 
-function handleTouchend() {
-  ball.isBeingFlung = false
-  rotatingObstacle = null
-}
+// loop
 
 function loopGame() {
   draw()
@@ -254,6 +186,8 @@ function loopGame() {
   handleCollision()
   setTimeout(loopGame, getMSPerFrame())
 }
+
+// move
 
 function moveBall() {
   ball.xPos += ball.xVel
@@ -266,6 +200,45 @@ function moveBall() {
 function moveObstacles() {
   updateSwapAnimation()
   updateLetterSwapAnimation()
+}
+
+// handle
+
+function handleTouchstart(e) {
+  touch1.xPos = e.touches[0].clientX
+  touch1.yPos = e.touches[0].clientY
+  if (isClose(touch1, ball, BALL_RADIUS)) {
+    ball.isBeingFlung = true
+    return
+  }
+  if (hasFlung && isPlaySpelledCorrectly()) { // Check if tapping on "play" rectangle when correctly spelled
+    if (isTouchingPlayRectangle(touch1)) {
+      generateLevel()
+      return
+    }
+  }
+  handleTouchstartToRotate()
+  handleTouchstartToSwap()
+  handleTouchstartToSwapLetters()
+  handleCheatTap()
+}
+
+function handleTouchmove(e) {
+  e.preventDefault()
+  let touch2 = { 
+    xPos: e.touches[0].clientX, 
+    yPos: e.touches[0].clientY 
+  }
+  if (ball.isBeingFlung) {
+    ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
+    ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
+  }
+  handleTouchmoveToRotate(touch2)
+}
+
+function handleTouchend() {
+  ball.isBeingFlung = false
+  rotatingObstacle = null
 }
 
 function handleCollision() {
@@ -357,13 +330,6 @@ function handleWormhole() {
   }
 }
 
-function cooldownWormhole() {
-  wormholeA.isEnabled = false
-  wormholeB.isEnabled = false
-  setTimeout(() => wormholeA.isEnabled = true, COOLDOWN_DURATION)
-  setTimeout(() => wormholeB.isEnabled = true, COOLDOWN_DURATION)
-}
-
 function handleKey() {
   if (isClose(ball, key, BALL_RADIUS + KEY_SIZE)) {
     key.isEnabled = false
@@ -407,6 +373,8 @@ function handleEdge() {
     }
   }
 }
+
+// draw
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -476,7 +444,7 @@ function drawTrophies() {
   let startX = TROPHY_SIZE
   let startY = TROPHY_SIZE
   let spacing = TROPHY_SIZE * 2.5 // Space between trophies
-  
+  //
   for (let i = 0; i < trophyCount; i++) {
     let x = startX + i * spacing
     let y = startY
@@ -714,6 +682,8 @@ function drawBonus() {
   }
 }
 
+// utilitize
+
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   return(
     Math.abs(objectA.xPos - objectB.xPos) < threshold && 
@@ -723,6 +693,43 @@ function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
 
 function getMSPerFrame() {
   return 1000 / FPS
+}
+
+function initializeLetterPositions() {
+  let baseX = playButton.xPos
+  let baseY = playButton.yPos
+  let letterSpacing = LETTER_SQUARE_SIZE // No spacing between squares
+  let startX = baseX - (letterSpacing * 1.5) // Center the 4 letters
+  letterP.xPos = startX
+  letterP.yPos = baseY
+  letterP.originalX = startX
+  letterP.originalY = baseY
+  letterY.xPos = startX + letterSpacing
+  letterY.yPos = baseY
+  letterY.originalX = startX + letterSpacing
+  letterY.originalY = baseY
+  letterA.xPos = startX + letterSpacing * 2
+  letterA.yPos = baseY
+  letterA.originalX = startX + letterSpacing * 2
+  letterA.originalY = baseY
+  letterL.xPos = startX + letterSpacing * 3
+  letterL.yPos = baseY
+  letterL.originalX = startX + letterSpacing * 3
+  letterL.originalY = baseY
+}
+
+function isTouchingPlayRectangle(touch) {
+  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
+  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
+  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
+  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
+  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
+  return(
+    touch.xPos >= leftX &&
+    touch.xPos <= rightX &&
+    touch.yPos >= topY &&
+    touch.yPos <= bottomY
+  )
 }
 
 function isPlaySpelledCorrectly() {
@@ -735,6 +742,13 @@ function isPlaySpelledCorrectly() {
   )
 }
 
+function cooldownWormhole() {
+  wormholeA.isEnabled = false
+  wormholeB.isEnabled = false
+  setTimeout(() => wormholeA.isEnabled = true, COOLDOWN_DURATION)
+  setTimeout(() => wormholeB.isEnabled = true, COOLDOWN_DURATION)
+}
+
 function getAlertText(bonusText) {
   return(
 `
@@ -745,7 +759,7 @@ ${bonusText}
   )
 }
 
-// ai swap/rotate code 
+// ai 
 
 let swapAnimation = null
 
