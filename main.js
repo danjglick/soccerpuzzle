@@ -14,20 +14,17 @@ const BALL_FRICTION = 1
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
+const KEY_SIZE = BALL_RADIUS * 0.75
+const TROPHY_SIZE = BALL_RADIUS * 0.6
 const MAX_SPAWN_ATTEMPTS = 10000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
-const KEY_SIZE = BALL_RADIUS * 0.75
-const POINTS_TO_WIN = 5
-const LEVELS = ["Quarterfinals", "Semifinals", "Championship"]
-const TROPHY_SIZE = BALL_RADIUS * 0.6
 
 let canvas;
 let ctx;
 let ball = {}
 let goal = {}
-let ownGoal = {}
 let cannon = {}
 let puddle = {}
 let wall = {}
@@ -35,9 +32,8 @@ let wormholeA = {}
 let wormholeB = {}
 let key = {}
 let bonus = {}
-let enemy = {}
-let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus, enemy]
-let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB, enemy]
+let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
+let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB]
 let touch1 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
 let rotatingObstacle = {}
@@ -50,9 +46,6 @@ let letterL = { char: 'l', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
 let swappableLetters = [letterP, letterY, letterA, letterL]
 let selectedLetter = null
 let letterSwapAnimation = null
-let playerScore = 0
-let enemyScore = 0
-let levelIndex = 0
 let areObstaclesHidden = false
 let showWelcome = false
 let showTitle = false
@@ -191,11 +184,9 @@ function generateLevel() {
   hasFlung = false
   spawnBall()
   spawnGoal()
-  spawnOwnGoal()
   spawnedObstacles = []
   for (let i = 0; i < obstacles.length; i++) spawnObstacle(obstacles[i])
   selectedObstacle = null
-  ownGoal.isEnabled = false
   cheatTaps = 0
 }
 
@@ -219,14 +210,6 @@ function spawnGoal() {
   goal = {
     xPos: GOAL_WIDTH + (canvas.width - 2 * GOAL_WIDTH) * Math.random(),
     yPos: 0,
-    isEnabled: true 
-  }
-}
-
-function spawnOwnGoal() {
-  ownGoal = {
-    xPos: goal.xPos,
-    yPos: canvas.height,
     isEnabled: true 
   }
 }
@@ -300,7 +283,6 @@ function moveObstacles() {
 
 function handleCollision() {
   handleGoal()
-  //handleOwnGoal()
   handleCannon()
   handlePuddle()
   handleWall()
@@ -308,17 +290,6 @@ function handleCollision() {
   handleKey()
   handleBonus()
   handleEdge()
-  //handleEnemy()
-}
-
-function handleEnemy() {
-  if (enemy.isEnabled) {
-    if (isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
-      ball.xVel = (ownGoal.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
-      ball.yVel = (ownGoal.yPos - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
-      ownGoal.isEnabled = true
-    }
-  }
 }
 
 function handleGoal() {
@@ -335,13 +306,10 @@ function handleGoal() {
       ball.yPos = GOAL_HEIGHT
       trophyCount++
       let bonusText = "(no bonus)"
-      //setTimeout(() => incrementScore(), 2000)
       if (!bonus.isEnabled) {
         trophyCount++
         bonusText = "+ Bonus!"
-        //setTimeout(() => incrementScore(), 3000)
       }
-      //setTimeout(() => generateLevel(), !bonus.isEnabled ? 5000 : 4000)
       alert(
 `
 Goal!
@@ -351,33 +319,6 @@ ${bonusText}
       )
       generateLevel()
     }
-  }
-}
-
-function handleOwnGoal() {
-  if (ownGoal.isEnabled) {
-    let isBallPastGoalLine = ball.yPos + BALL_RADIUS >= canvas.height
-    let isBallInsideRightPost = ball.xPos + BALL_RADIUS < goal.xPos + GOAL_WIDTH
-    let isBallInsideLeftPost = ball.xPos - BALL_RADIUS > goal.xPos - GOAL_WIDTH
-    if (isBallPastGoalLine && isBallInsideRightPost && isBallInsideLeftPost) {
-      ownGoal.isEnabled = false
-      ball.xVel = 0
-      ball.yVel = 0
-      ball.yPos = canvas.height - GOAL_HEIGHT / 2
-      setTimeout(() => incrementScore(false), 2000)
-      if (!bonus.isEnabled) {
-        setTimeout((incrementScore(false), 3000))
-      }
-      setTimeout(() => generateLevel(), !bonus.isEnabled ? 5000 : 4000)
-    } 
-  }
-}
-
-function incrementScore(isPlayer = true) {
-  if (isPlayer) {
-    playerScore++
-  } else {
-    enemyScore++
   }
 }
 
@@ -489,10 +430,8 @@ function handleEdge() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawMenu()
-  //drawScore()
   drawTrophies()
   drawGoal()
-  //drawOwnGoal()
   if (!areObstaclesHidden) {
     drawCannon()
     drawPuddle()
@@ -500,7 +439,6 @@ function draw() {
     drawWormhole()
     drawKey()
     drawBonus()
-    //drawEnemy()
   }
   if (!isBallHidden) drawBall()
   //drawSelectionBorder()
@@ -638,25 +576,6 @@ function drawPlayBorder() {
   }
   
   ctx.restore()
-}
-
-function drawEnemy() {
-  ctx.beginPath()
-  ctx.moveTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
-  ctx.lineTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
-  ctx.moveTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
-  ctx.lineTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
-  ctx.lineWidth = 5
-  ctx.strokeStyle = "maroon"
-  ctx.stroke()
-}
-
-function drawScore() {
-  ctx.font = "25px arial"
-  ctx.fillStyle = "white"
-  ctx.fillText(`${LEVELS[levelIndex]}`, 0, BALL_RADIUS)
-  ctx.fillText(`${playerScore}-${enemyScore}`, canvas.width - canvas.width / 9, canvas.height / 37)  
-  //ctx.fillText(`first to 3`, canvas.width - canvas.width / 4.5, canvas.height / 37) 
 }
 
 function drawTrophies() {
@@ -879,47 +798,6 @@ function drawGoal() {
   ctx.strokeStyle = "grey"
   ctx.stroke()
   ctx.closePath()
-}
-
-function drawOwnGoal() {
-  ctx.save()
-  ctx.beginPath()
-  ctx.moveTo(0, canvas.height - GOAL_HEIGHT / 2)
-  ctx.lineTo(ownGoal.xPos - GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
-  ctx.moveTo(ownGoal.xPos + GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
-  ctx.lineTo(canvas.width, canvas.height - GOAL_HEIGHT / 2)
-  ctx.lineWidth = 5
-  ctx.strokeStyle = "grey"
-  ctx.globalAlpha = .5
-  ctx.stroke()
-  let netSpacing = BALL_RADIUS / 3
-  let leftPost = ownGoal.xPos - GOAL_WIDTH / 2
-  let rightPost = ownGoal.xPos + GOAL_WIDTH / 2
-  let goalTop = canvas.height - GOAL_HEIGHT / 2
-  let goalBottom = canvas.height
-  ctx.strokeStyle = "#555"
-  ctx.lineWidth = 1.5
-  for (let x = leftPost; x <= rightPost; x += netSpacing) {
-    ctx.beginPath()
-    ctx.moveTo(x, goalTop)
-    ctx.lineTo(x, goalBottom)
-    ctx.stroke()
-  }
-  for (let y = goalTop; y <= goalBottom; y += netSpacing) {
-    ctx.beginPath()
-    ctx.moveTo(leftPost, y)
-    ctx.lineTo(rightPost, y)
-    ctx.stroke()
-  }
-  ctx.beginPath()
-  ctx.moveTo(ownGoal.xPos - GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
-  ctx.lineTo(ownGoal.xPos - GOAL_WIDTH / 2, canvas.height + 10)
-  ctx.moveTo(ownGoal.xPos + GOAL_WIDTH / 2, canvas.height - GOAL_HEIGHT / 2)
-  ctx.lineTo(ownGoal.xPos + GOAL_WIDTH / 2, canvas.height + 10)
-  ctx.lineWidth = 5
-  ctx.strokeStyle = "grey"
-  ctx.stroke()
-  ctx.restore()
 }
 
 function drawCannon() {
