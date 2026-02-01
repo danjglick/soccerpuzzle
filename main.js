@@ -5,7 +5,7 @@ let cheatTaps = 0
 // http://10.0.0.145:8080
 
 const FPS = 60
-const BALL_RADIUS = window.innerWidth / 14
+const BALL_RADIUS = window.innerWidth / 15
 const BALL_SPEED_DIVISOR = 5
 const BALL_RESTITUTION = .85
 const BALL_MIN_SPEED = 15
@@ -18,6 +18,7 @@ const MAX_SPAWN_ATTEMPTS = 10000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
+const KEY_SIZE = BALL_RADIUS * 0.75
 const POINTS_TO_WIN = 5
 const LEVELS = ["Quarterfinals", "Semifinals", "Championship"]
 
@@ -144,6 +145,8 @@ function handleTouchmove(e) {
 
 function showMenu() {
   areObstaclesHidden = true
+  //generateLevel()
+
   setTimeout(() => showWelcome = true, 1000)
   setTimeout(() => showTitle = true, 2000)
   setTimeout(() => { spawnBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
@@ -428,7 +431,7 @@ function cooldownWormhole() {
 }
 
 function handleKey() {
-  if (isClose(ball, key, BALL_RADIUS + BALL_RADIUS / 2)) {
+  if (isClose(ball, key, BALL_RADIUS + KEY_SIZE)) {
     key.isEnabled = false
   }
 }
@@ -533,7 +536,7 @@ function drawMenu() {
       ctx.fillStyle = colors[i]
       ctx.lineWidth = 2
       ctx.beginPath()
-      ctx.arc(letter.xPos, letter.yPos, LETTER_SQUARE_SIZE / 2, 0, 2 * Math.PI)
+      ctx.arc(letter.xPos, letter.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
       ctx.fill()
       ctx.fillStyle = "black"
       // Draw letter (centered both horizontally and vertically)
@@ -782,7 +785,7 @@ function drawCannon() {
   ctx.translate(cannon.xPos, cannon.yPos)
   ctx.rotate(cannon.angle)
   ctx.beginPath()
-  ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
+  ctx.arc(0, 0, BALL_RADIUS * .75, 0, 2 * Math.PI)
   ctx.fillStyle = color
   ctx.fill()
   ctx.fillStyle = "black"
@@ -797,7 +800,7 @@ function drawCannon() {
   ctx.closePath()
   ctx.fill()
   ctx.beginPath()
-  ctx.arc(0, BALL_RADIUS * 1.5, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.arc(0, BALL_RADIUS, BALL_RADIUS * .375, 0, 2 * Math.PI)
   ctx.fillStyle = color
   ctx.fill()
   ctx.restore()
@@ -805,7 +808,7 @@ function drawCannon() {
 
 function drawPuddle() {
   ctx.beginPath()
-  ctx.arc(puddle.xPos, puddle.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+  ctx.arc(puddle.xPos, puddle.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
   ctx.fillStyle = "blue"
   ctx.fill()
 }
@@ -823,12 +826,12 @@ function drawWall() {
   ctx.translate(ends.a.xPos, ends.a.yPos)
   ctx.rotate(wall.angle)
   ctx.beginPath()
-  ctx.rect(-BALL_RADIUS / 2, -BALL_RADIUS / 2, BALL_RADIUS, BALL_RADIUS)
+  ctx.rect(-BALL_RADIUS * .375, -BALL_RADIUS * .375, BALL_RADIUS * .75, BALL_RADIUS * .75)
   ctx.fillStyle = color
   ctx.fill()
   ctx.restore()
   ctx.beginPath()
-  ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+  ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS * .375, 0, 2 * Math.PI)
   ctx.fillStyle = color
   ctx.fill()
 }
@@ -837,7 +840,7 @@ function drawWormhole() {
   let color = "purple"
   for (let wormhole of [wormholeA, wormholeB]) {
     ctx.beginPath()
-    ctx.arc(wormhole.xPos, wormhole.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+    ctx.arc(wormhole.xPos, wormhole.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
     ctx.fillStyle = color
     ctx.fill()
   }
@@ -853,17 +856,43 @@ function drawWormhole() {
 function drawKey() {
   if (key.isEnabled) {
     let color = "orange"
+    ctx.save()
+    ctx.translate(key.xPos, key.yPos)
+    ctx.rotate(-Math.PI / 4)
+    
+    // Key Head (ring)
     ctx.beginPath()
-    ctx.arc(key.xPos, key.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-    ctx.fillStyle = color
-    ctx.fill() 
+    ctx.arc(-KEY_SIZE * 0.4, 0, KEY_SIZE * 0.4, 0, 2 * Math.PI)
+    ctx.strokeStyle = color
+    ctx.lineWidth = KEY_SIZE * 0.2
+    ctx.stroke()
+    
+    // Key Shaft
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(KEY_SIZE, 0)
+    ctx.lineWidth = KEY_SIZE * 0.16
+    ctx.lineCap = "round"
+    ctx.stroke()
+    
+    // Key Teeth
+    ctx.beginPath()
+    ctx.moveTo(KEY_SIZE * 0.6, 0)
+    ctx.lineTo(KEY_SIZE * 0.6, KEY_SIZE * 0.3)
+    ctx.moveTo(KEY_SIZE * 0.9, 0)
+    ctx.lineTo(KEY_SIZE * 0.9, KEY_SIZE * 0.3)
+    ctx.lineWidth = KEY_SIZE * 0.16
+    ctx.lineCap = "round"
+    ctx.stroke()
+    
+    ctx.restore()
+
     ctx.beginPath()
     ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
     ctx.lineWidth = 5
     ctx.strokeStyle = color
     ctx.stroke()
-    ctx.restore()
   }
 }
 
