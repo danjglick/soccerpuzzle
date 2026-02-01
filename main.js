@@ -1,14 +1,14 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
-const TAPS_TO_ACTIVATE_CHEAT = 1
+const TAPS_TO_ACTIVATE_CHEAT = 3
 let cheatTaps = 0
 // http://10.0.0.145:8080
 
 const FPS = 60
-const BALL_RADIUS = window.innerWidth / 20
+const BALL_RADIUS = window.innerWidth / 14
 const BALL_SPEED_DIVISOR = 5
 const BALL_RESTITUTION = .85
-const BALL_MIN_SPEED = 15
+const BALL_MIN_SPEED = 10
 const BALL_MAX_SPEED = 30 // not currently used
 const BALL_FRICTION = 1
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
@@ -40,21 +40,35 @@ let touch1 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
 let rotatingObstacle = {}
 let selectedObstacle = {}
+const LETTER_SQUARE_SIZE = 50
+let letterP = { char: 'p', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let letterY = { char: 'y', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let letterA = { char: 'a', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let letterL = { char: 'l', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let swappableLetters = [letterP, letterY, letterA, letterL]
+let selectedLetter = null
+let letterSwapAnimation = null
 let playerScore = 0
 let enemyScore = 0
 let levelIndex = 0
 let areObstaclesHidden = false
+let showWelcome = false
+let showTitle = false
+let isBallHidden = true
+let hasFlung = false
+let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
 
 function handleCheatTap() {
   if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
     cheatTaps++ 
-    if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) { 
+    if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) {
       for (let i = 0; i < obstacles.length; i++) { 
         obstacles[i].isEnabled = false 
       } 
+      // insert cheat effects here
+      //goal.isEnabled = false
     }
   }
-  puddle.isEnabled = true
 }
 
 function initialize() {
@@ -66,11 +80,110 @@ function initialize() {
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
-  generateLevel()
-  loopGame()
+  showMenu()
+  //generateLevel()
+  //loopGame()
+}
+
+function handleTouchstart(e) {
+  touch1.xPos = e.touches[0].clientX
+  touch1.yPos = e.touches[0].clientY
+  if (isClose(touch1, ball, BALL_RADIUS)) {
+    ball.isBeingFlung = true
+    return
+  }
+  if (
+    showTitle && 
+    touch1.xPos > canvas.width * .4 &&
+    touch1.xPos < canvas.width * .6 &&
+    touch1.yPos > canvas.height * .5 &&
+    touch1.yPos < canvas.height * .7
+  ) {
+    //generateLevel()
+  }
+  // Check if tapping on "play" rectangle when correctly spelled
+  if (hasFlung && isPlaySpelledCorrectly()) {
+    if (isTouchingPlayRectangle(touch1)) {
+      generateLevel()
+      return
+    }
+  }
+  handleTouchstartToRotate()
+  handleTouchstartToSwap()
+  handleTouchstartToSwapLetters()
+  handleCheatTap()
+}
+
+function isTouchingPlayRectangle(touch) {
+  // Calculate the circle bounds from all letters
+  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
+  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
+  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
+  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
+  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
+  
+  // Check if touch is within the bounding rectangle of all circles
+  return touch.xPos >= leftX &&
+         touch.xPos <= rightX &&
+         touch.yPos >= topY &&
+         touch.yPos <= bottomY
+}
+
+function handleTouchmove(e) {
+  e.preventDefault()
+  let touch2 = { 
+    xPos: e.touches[0].clientX, 
+    yPos: e.touches[0].clientY 
+  }
+  if (ball.isBeingFlung) {
+    ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
+    ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
+  }
+  handleTouchmoveToRotate(touch2)
+}
+
+function showMenu() {
+  areObstaclesHidden = true
+  setTimeout(() => showWelcome = true, 1000)
+  setTimeout(() => showTitle = true, 2000)
+  setTimeout(() => { spawnBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
+  initializeLetterPositions()
+  loopGame()  
+}
+
+function initializeLetterPositions() {
+  // Calculate positions for "p   y   a   l" with spacing
+  let baseX = playButton.xPos
+  let baseY = playButton.yPos
+  let letterSpacing = LETTER_SQUARE_SIZE // No spacing between squares
+  let startX = baseX - (letterSpacing * 1.5) // Center the 4 letters
+  
+  letterP.xPos = startX
+  letterP.yPos = baseY
+  letterP.originalX = startX
+  letterP.originalY = baseY
+  
+  letterY.xPos = startX + letterSpacing
+  letterY.yPos = baseY
+  letterY.originalX = startX + letterSpacing
+  letterY.originalY = baseY
+  
+  letterA.xPos = startX + letterSpacing * 2
+  letterA.yPos = baseY
+  letterA.originalX = startX + letterSpacing * 2
+  letterA.originalY = baseY
+  
+  letterL.xPos = startX + letterSpacing * 3
+  letterL.yPos = baseY
+  letterL.originalX = startX + letterSpacing * 3
+  letterL.originalY = baseY
 }
 
 function generateLevel() {
+  areObstaclesHidden = false
+  showWelcome = false
+  showTitle = false
+  hasFlung = false
   spawnBall()
   spawnGoal()
   spawnOwnGoal()
@@ -84,7 +197,7 @@ function generateLevel() {
 function spawnBall() {
   let spawn = {
     xPos: BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
-    yPos: canvas.height - BALL_RADIUS * 2
+    yPos: canvas.height - BALL_RADIUS
   }
   ball = { 
     xPos: spawn.xPos, 
@@ -154,31 +267,6 @@ function spawnObstacle(obstacle) {
   })
 }
 
-function handleTouchstart(e) {
-  touch1.xPos = e.touches[0].clientX
-  touch1.yPos = e.touches[0].clientY
-  if (isClose(touch1, ball, BALL_RADIUS)) {
-    ball.isBeingFlung = true
-    return
-  }
-  handleTouchstartToRotate()
-  handleTouchstartToSwap()
-  handleCheatTap()
-}
-
-function handleTouchmove(e) {
-  e.preventDefault()
-  let touch2 = { 
-    xPos: e.touches[0].clientX, 
-    yPos: e.touches[0].clientY 
-  }
-  if (ball.isBeingFlung) {
-    ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
-    ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
-  }
-  handleTouchmoveToRotate(touch2)
-}
-
 function handleTouchend() {
   ball.isBeingFlung = false
   rotatingObstacle = null
@@ -198,15 +286,11 @@ function moveBall() {
   ball.angle += ball.xVel / BALL_RADIUS
   ball.xVel *= BALL_FRICTION
   ball.yVel *= BALL_FRICTION
-  let speed = Math.hypot(ball.xVel, ball.yVel)
-  if (speed < BALL_MIN_SPEED && !ball.isBeingFlung) {
-    ball.xVel = 0
-    ball.yVel = 0
-  }
 }
 
 function moveObstacles() {
   updateSwapAnimation()
+  updateLetterSwapAnimation()
 }
 
 function handleCollision() {
@@ -241,6 +325,8 @@ function handleGoal() {
       goal.isEnabled = false
       ball.xVel = 0
       ball.yVel = 0
+      ball.xPos = goal.xPos
+      ball.yPos = goal.yPos
       ball.yPos = GOAL_HEIGHT
       //setTimeout(() => incrementScore(), 2000)
       if (!bonus.isEnabled) {
@@ -371,11 +457,23 @@ function handleEdge() {
   } else if (isBallAtBottomEdge) {
     ball.yPos = canvas.height - BALL_RADIUS
     ball.yVel = -ball.yVel * BALL_RESTITUTION
+    let speed = Math.hypot(ball.xVel, ball.yVel)
+    if (!ball.isBeingFlung && speed < BALL_MIN_SPEED) {
+      ball.xVel = 0
+      ball.yVel = 0
+      if (showTitle) {
+        setTimeout(() => {
+          hasFlung = true
+          initializeLetterPositions()
+        }, 1250)
+      }
+    }
   }
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  drawMenu()
   //drawScore()
   drawGoal()
   //drawOwnGoal()
@@ -388,8 +486,142 @@ function draw() {
     drawBonus()
     //drawEnemy()
   }
-  drawBall()
-  drawSelectionBorder()
+  if (!isBallHidden) drawBall()
+  //drawSelectionBorder()
+  drawSelectionElectricity()
+  drawSwapAnimationElectricity()
+  //drawSwappableBorders()
+  drawLetterSelectionElectricity()
+  drawLetterSwapAnimationElectricity()
+  drawLetterSelectionBorder()
+}
+
+function isPlaySpelledCorrectly() {
+  // Sort letters by xPos to get left-to-right order
+  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
+  // Check if they spell "play" from left to right
+  return sortedLetters[0].char === 'p' &&
+         sortedLetters[1].char === 'l' &&
+         sortedLetters[2].char === 'a' &&
+         sortedLetters[3].char === 'y'
+}
+
+function drawMenu() {
+  if (showWelcome) {
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.font = "30px arial"
+    ctx.fillStyle = "white"
+    ctx.fillText("welcome to", canvas.width / 2, canvas.height * .25)
+  }
+  if (showTitle) {
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.font = "50px arial"
+    ctx.fillStyle = "white"
+    ctx.fillText("soccerpuzzle", canvas.width / 2, canvas.height * .3)
+  }
+  if (hasFlung) {
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.font = "bold 30px arial"
+    // Draw each letter with its circle
+    let colors = ["red", "yellow", "blue", "purple"]
+    for (let i = 0; i < swappableLetters.length; i++) {
+      let letter = swappableLetters[i]
+      // Draw simple circle
+      ctx.fillStyle = colors[i]
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(letter.xPos, letter.yPos, LETTER_SQUARE_SIZE / 2, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.fillStyle = "black"
+      // Draw letter (centered both horizontally and vertically)
+      ctx.fillText(letter.char, letter.xPos, letter.yPos)
+    }
+    
+    // Draw teal electric border around rectangle if "play" is spelled correctly
+    if (isPlaySpelledCorrectly()) {
+      drawPlayBorder()
+    }
+  }
+}
+
+function drawPlayBorder() {
+  // Calculate the bounding rectangle from all letters (for touch detection)
+  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
+  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
+  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
+  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
+  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
+  
+  let rectWidth = rightX - leftX
+  let rectHeight = bottomY - topY
+  
+  ctx.save()
+  
+  let time = Date.now() * 0.01
+  
+  // Draw multiple layers for electricity effect around the bounding rectangle
+  for (let layer = 0; layer < 3; layer++) {
+    let opacity = layer === 0 ? 0.3 : (layer === 1 ? 0.6 : 0.8)
+    let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
+    
+    ctx.strokeStyle = layer === 0 
+      ? `rgba(77, 208, 225, ${opacity})`
+      : layer === 1
+      ? `rgba(150, 230, 240, ${opacity})`
+      : `rgba(170, 235, 245, ${opacity})`
+    ctx.lineWidth = lineWidth
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
+    
+    // Create jagged border effect
+    let segments = 32
+    ctx.beginPath()
+    
+    // Top edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let x = leftX + rectWidth * t
+      let jitter = Math.sin(time * 2 + i * 0.5) * 2 + Math.cos(time * 1.5 + i * 0.7) * 2
+      let y = topY + jitter * (layer === 0 ? 1 : 0.5)
+      if (i === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
+    }
+    
+    // Right edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let y = topY + rectHeight * t
+      let jitter = Math.sin(time * 2 + (segments / 4 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments / 4 + i) * 0.7) * 2
+      let x = rightX + jitter * (layer === 0 ? 1 : 0.5)
+      ctx.lineTo(x, y)
+    }
+    
+    // Bottom edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let x = rightX - rectWidth * t
+      let jitter = Math.sin(time * 2 + (segments / 2 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments / 2 + i) * 0.7) * 2
+      let y = bottomY + jitter * (layer === 0 ? 1 : 0.5)
+      ctx.lineTo(x, y)
+    }
+    
+    // Left edge
+    for (let i = 0; i <= segments / 4; i++) {
+      let t = i / (segments / 4)
+      let y = bottomY - rectHeight * t
+      let jitter = Math.sin(time * 2 + (segments * 3 / 4 + i) * 0.5) * 2 + Math.cos(time * 1.5 + (segments * 3 / 4 + i) * 0.7) * 2
+      let x = leftX + jitter * (layer === 0 ? 1 : 0.5)
+      ctx.lineTo(x, y)
+    }
+    
+    ctx.closePath()
+    ctx.stroke()
+  }
+  
+  ctx.restore()
 }
 
 function drawEnemy() {
@@ -668,6 +900,344 @@ function drawSelectionBorder() {
   ctx.stroke()
 }
 
+function drawElectricityLine(fromX, fromY, toX, toY) {
+  ctx.save()
+  
+  // Calculate distance and direction
+  let dx = toX - fromX
+  let dy = toY - fromY
+  let distance = Math.hypot(dx, dy)
+  
+  if (distance < 1) {
+    ctx.restore()
+    return
+  }
+  
+  // Normalize direction
+  let nx = dx / distance
+  let ny = dy / distance
+  // Perpendicular direction for offsets
+  let px = -ny
+  let py = nx
+  
+  // Time-based animation for electricity flicker
+  let time = Date.now() * 0.01
+  
+  // Draw glow effect (outer layer)
+  ctx.strokeStyle = "rgba(77, 208, 225, 0.3)"
+  ctx.lineWidth = 8
+  ctx.lineCap = "round"
+  ctx.lineJoin = "round"
+  ctx.beginPath()
+  ctx.moveTo(fromX, fromY)
+  ctx.lineTo(toX, toY)
+  ctx.stroke()
+  
+  // Draw main electricity line with jagged segments
+  let segments = Math.max(5, Math.floor(distance / 30))
+  
+  // Draw multiple electricity arcs for effect
+  for (let arc = 0; arc < 3; arc++) {
+    ctx.strokeStyle = arc === 0 ? "#4dd0e1" : "rgba(150, 230, 240, 0.6)"
+    ctx.lineWidth = arc === 0 ? 2 : 1
+    
+    ctx.beginPath()
+    ctx.moveTo(fromX, fromY)
+    
+    for (let i = 1; i < segments; i++) {
+      let t = i / segments
+      // Base position along the line
+      let baseX = fromX + dx * t
+      let baseY = fromY + dy * t
+      
+      // Add random offset perpendicular to the line (electricity jitter)
+      // Use time and position to create animated noise
+      let noise1 = Math.sin(time + i * 3.7 + arc * 2.1) * 0.5 + Math.sin(time * 1.3 + i * 2.3) * 0.5
+      let noise2 = Math.cos(time * 0.8 + i * 4.1 + arc * 1.7) * 0.5 + Math.cos(time * 1.7 + i * 1.9) * 0.5
+      let offset = (noise1 + noise2) * 12 * (1 - Math.abs(t - 0.5) * 2) // Stronger in middle
+      
+      let jitterX = baseX + px * offset
+      let jitterY = baseY + py * offset
+      
+      ctx.lineTo(jitterX, jitterY)
+    }
+    
+    ctx.lineTo(toX, toY)
+    ctx.stroke()
+  }
+  
+  // Draw bright core
+  ctx.strokeStyle = "#aae6f0"
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(fromX, fromY)
+  ctx.lineTo(toX, toY)
+  ctx.stroke()
+  
+  // Add small spark effects at both ends
+  let sparkCount = 3
+  for (let i = 0; i < sparkCount; i++) {
+    let sparkAngle = time * 2 + i * (Math.PI * 2 / sparkCount)
+    let sparkLen = 8 + Math.sin(time * 3 + i) * 4
+    
+    ctx.strokeStyle = "rgba(150, 230, 240, 0.8)"
+    ctx.lineWidth = 1
+    
+    // Spark at from end
+    ctx.beginPath()
+    ctx.moveTo(fromX, fromY)
+    ctx.lineTo(
+      fromX + Math.cos(sparkAngle) * sparkLen,
+      fromY + Math.sin(sparkAngle) * sparkLen
+    )
+    ctx.stroke()
+    
+    // Spark at to end
+    ctx.beginPath()
+    ctx.moveTo(toX, toY)
+    ctx.lineTo(
+      toX + Math.cos(sparkAngle + Math.PI) * sparkLen,
+      toY + Math.sin(sparkAngle + Math.PI) * sparkLen
+    )
+    ctx.stroke()
+  }
+  
+  ctx.restore()
+}
+
+function drawSelectionElectricity() {
+  if (!selectedObstacle || !selectedObstacle.isEnabled || isBallHidden) return
+  
+  let ballX = ball.xPos
+  let ballY = ball.yPos
+  let spriteX = selectedObstacle.xPos
+  let spriteY = selectedObstacle.yPos
+  
+  drawElectricityLine(spriteX, spriteY, ballX, ballY)
+}
+
+function drawSwapAnimationElectricity() {
+  if (!swapAnimation || isBallHidden) return
+  
+  let ballX = ball.xPos
+  let ballY = ball.yPos
+  
+  // Draw electricity to obstacleA
+  if (swapAnimation.obstacleA && swapAnimation.obstacleA.isEnabled) {
+    let aX = swapAnimation.obstacleA.xPos
+    let aY = swapAnimation.obstacleA.yPos
+    drawElectricityLine(aX, aY, ballX, ballY)
+  }
+  
+  // Draw electricity to obstacleB
+  if (swapAnimation.obstacleB && swapAnimation.obstacleB.isEnabled) {
+    let bX = swapAnimation.obstacleB.xPos
+    let bY = swapAnimation.obstacleB.yPos
+    drawElectricityLine(bX, bY, ballX, ballY)
+  }
+}
+
+function drawSwappableBorders() {
+  // Only show borders when an obstacle is selected and swap hasn't started
+  if (!selectedObstacle || swapAnimation || isBallHidden) return
+  
+  let time = Date.now() * 0.01
+  
+  for (let obstacle of swappableObstacles) {
+    // Skip the selected obstacle (it has its own green border)
+    if (obstacle === selectedObstacle || !obstacle.isEnabled) continue
+    
+    ctx.save()
+    
+    // Pulsing teal electricity border
+    let pulse = 1
+    let radius = BALL_RADIUS * 1.3
+    
+    // Draw multiple layers for electricity effect
+    for (let layer = 0; layer < 3; layer++) {
+      let opacity = layer === 0 ? 0.3 * pulse : (layer === 1 ? 0.6 * pulse : 0.8 * pulse)
+      let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
+      
+      ctx.strokeStyle = layer === 0 
+        ? `rgba(77, 208, 225, ${opacity})`
+        : layer === 1
+        ? `rgba(150, 230, 240, ${opacity})`
+        : `rgba(170, 235, 245, ${opacity})`
+      ctx.lineWidth = lineWidth
+      ctx.lineCap = "round"
+      
+      // Create jagged border effect
+      let segments = 16
+      ctx.beginPath()
+      for (let i = 0; i <= segments; i++) {
+        let angle = (i / segments) * Math.PI * 2
+        let jitter = Math.sin(time * 2 + i * 0.5) * 2 + Math.cos(time * 1.5 + i * 0.7) * 2
+        let r = radius + jitter * (layer === 0 ? 1 : 0.5)
+        let x = obstacle.xPos + Math.cos(angle) * r
+        let y = obstacle.yPos + Math.sin(angle) * r
+        if (i === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      }
+      ctx.closePath()
+      ctx.stroke()
+    }
+    
+    // Add spark effects around the border
+    let sparkCount = 6
+    for (let i = 0; i < sparkCount; i++) {
+      let sparkAngle = (i / sparkCount) * Math.PI * 2 + time * 2
+      let sparkLen = 5 + Math.sin(time * 3 + i) * 3
+      let sparkX = obstacle.xPos + Math.cos(sparkAngle) * radius
+      let sparkY = obstacle.yPos + Math.sin(sparkAngle) * radius
+      
+      ctx.strokeStyle = `rgba(150, 230, 240, ${0.8 * pulse})`
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(sparkX, sparkY)
+      ctx.lineTo(
+        sparkX + Math.cos(sparkAngle) * sparkLen,
+        sparkY + Math.sin(sparkAngle) * sparkLen
+      )
+      ctx.stroke()
+    }
+    
+    ctx.restore()
+  }
+}
+
+function getCircleBorderPoint(letterX, letterY, targetX, targetY) {
+  // Calculate circle radius
+  let radius = LETTER_SQUARE_SIZE / 2
+  
+  // Find intersection point of line from target (ball) to letter center with circle border
+  let dx = letterX - targetX
+  let dy = letterY - targetY
+  let distance = Math.hypot(dx, dy)
+  
+  // If target is inside or at center, return point on circle in direction of target
+  if (distance < radius || distance === 0) {
+    // Return point on circle in the direction from center to target
+    let angle = Math.atan2(targetY - letterY, targetX - letterX)
+    return {
+      x: letterX + Math.cos(angle) * radius,
+      y: letterY + Math.sin(angle) * radius
+    }
+  }
+  
+  // Calculate intersection with circle
+  // Normalize direction vector
+  let nx = dx / distance
+  let ny = dy / distance
+  
+  // Point on circle in direction from target to letter center
+  return {
+    x: letterX - nx * radius,
+    y: letterY - ny * radius
+  }
+}
+
+function drawLetterSelectionBorder() {
+  if (!selectedLetter || !hasFlung) return
+  
+  let letterX = selectedLetter.xPos
+  let letterY = selectedLetter.yPos
+  let radius = LETTER_SQUARE_SIZE / 2
+  
+  ctx.save()
+  
+  let time = Date.now() * 0.01
+  
+  // Draw multiple layers for electricity effect
+  for (let layer = 0; layer < 3; layer++) {
+    let opacity = layer === 0 ? 0.3 : (layer === 1 ? 0.6 : 0.8)
+    let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
+    
+    ctx.strokeStyle = layer === 0 
+      ? `rgba(77, 208, 225, ${opacity})`
+      : layer === 1
+      ? `rgba(150, 230, 240, ${opacity})`
+      : `rgba(170, 235, 245, ${opacity})`
+    ctx.lineWidth = lineWidth
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
+    
+    // Create jagged border effect around the circle
+    let segments = 32
+    ctx.beginPath()
+    
+    for (let i = 0; i <= segments; i++) {
+      let angle = (i / segments) * Math.PI * 2
+      let jitter = Math.sin(time * 2 + i * 0.5) * 2 + Math.cos(time * 1.5 + i * 0.7) * 2
+      let r = radius + jitter * (layer === 0 ? 1 : 0.5)
+      let x = letterX + Math.cos(angle) * r
+      let y = letterY + Math.sin(angle) * r
+      if (i === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
+    }
+    
+    ctx.closePath()
+    ctx.stroke()
+  }
+  
+  // Add spark effects around the circle
+  let sparkCount = 8
+  for (let i = 0; i < sparkCount; i++) {
+    let sparkAngle = (i / sparkCount) * Math.PI * 2 + time * 2
+    let sparkLen = 5 + Math.sin(time * 3 + i) * 3
+    let sparkX = letterX + Math.cos(sparkAngle) * radius
+    let sparkY = letterY + Math.sin(sparkAngle) * radius
+    
+    ctx.strokeStyle = `rgba(150, 230, 240, 0.8)`
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(sparkX, sparkY)
+    ctx.lineTo(
+      sparkX + Math.cos(sparkAngle) * sparkLen,
+      sparkY + Math.sin(sparkAngle) * sparkLen
+    )
+    ctx.stroke()
+  }
+  
+  ctx.restore()
+}
+
+function drawLetterSelectionElectricity() {
+  if (!selectedLetter || !hasFlung) return
+  
+  let ballX = ball.xPos
+  let ballY = ball.yPos
+  let letterX = selectedLetter.xPos
+  let letterY = selectedLetter.yPos
+  
+  // Get the point on the circle border closest to the ball
+  let borderPoint = getCircleBorderPoint(letterX, letterY, ballX, ballY)
+  
+  drawElectricityLine(borderPoint.x, borderPoint.y, ballX, ballY)
+}
+
+function drawLetterSwapAnimationElectricity() {
+  if (!letterSwapAnimation || !hasFlung) return
+  
+  let ballX = ball.xPos
+  let ballY = ball.yPos
+  
+  // Draw electricity to letterA
+  if (letterSwapAnimation.letterA) {
+    let aX = letterSwapAnimation.letterA.xPos
+    let aY = letterSwapAnimation.letterA.yPos
+    let borderPoint = getCircleBorderPoint(aX, aY, ballX, ballY)
+    drawElectricityLine(borderPoint.x, borderPoint.y, ballX, ballY)
+  }
+  
+  // Draw electricity to letterB
+  if (letterSwapAnimation.letterB) {
+    let bX = letterSwapAnimation.letterB.xPos
+    let bY = letterSwapAnimation.letterB.yPos
+    let borderPoint = getCircleBorderPoint(bX, bY, ballX, ballY)
+    drawElectricityLine(borderPoint.x, borderPoint.y, ballX, ballY)
+  }
+}
+
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   return(
     Math.abs(objectA.xPos - objectB.xPos) < threshold && 
@@ -708,6 +1278,65 @@ function handleTouchstartToSwap() {
     }
   } else {
     selectedObstacle = null
+  }
+}
+
+function handleTouchstartToSwapLetters() {
+  if (!hasFlung || letterSwapAnimation) return
+  let tappedLetter = getTappedLetter(touch1)
+  if (tappedLetter) {
+    if (selectedLetter && selectedLetter !== tappedLetter) {
+      startLetterSwapAnimation(selectedLetter, tappedLetter)
+      selectedLetter = null
+    } else {
+      selectedLetter = tappedLetter
+    }
+  } else {
+    selectedLetter = null
+  }
+}
+
+function getTappedLetter(touch) {
+  for (let letter of swappableLetters) {
+    // Check if touch is within the circle bounds
+    let radius = LETTER_SQUARE_SIZE / 2
+    let dx = touch.xPos - letter.xPos
+    let dy = touch.yPos - letter.yPos
+    let distance = Math.hypot(dx, dy)
+    if (distance <= radius) {
+      return letter
+    }
+  }
+  return null
+}
+
+function startLetterSwapAnimation(letterA, letterB) {
+  letterSwapAnimation = {
+    letterA: letterA,
+    letterB: letterB,
+    startAX: letterA.xPos,
+    startAY: letterA.yPos,
+    startBX: letterB.xPos,
+    startBY: letterB.yPos,
+    progress: 0
+  }
+}
+
+function updateLetterSwapAnimation() {
+  if (!letterSwapAnimation) return
+  letterSwapAnimation.progress++
+  let t = letterSwapAnimation.progress / SWAP_DURATION
+  let eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  letterSwapAnimation.letterA.xPos = letterSwapAnimation.startAX + (letterSwapAnimation.startBX - letterSwapAnimation.startAX) * eased
+  letterSwapAnimation.letterA.yPos = letterSwapAnimation.startAY + (letterSwapAnimation.startBY - letterSwapAnimation.startAY) * eased
+  letterSwapAnimation.letterB.xPos = letterSwapAnimation.startBX + (letterSwapAnimation.startAX - letterSwapAnimation.startBX) * eased
+  letterSwapAnimation.letterB.yPos = letterSwapAnimation.startBY + (letterSwapAnimation.startAY - letterSwapAnimation.startBY) * eased
+  if (letterSwapAnimation.progress >= SWAP_DURATION) {
+    letterSwapAnimation.letterA.xPos = letterSwapAnimation.startBX
+    letterSwapAnimation.letterA.yPos = letterSwapAnimation.startBY
+    letterSwapAnimation.letterB.xPos = letterSwapAnimation.startAX
+    letterSwapAnimation.letterB.yPos = letterSwapAnimation.startAY
+    letterSwapAnimation = null
   }
 }
 
