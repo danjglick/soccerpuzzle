@@ -1,6 +1,6 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
-const TAPS_TO_ACTIVATE_CHEAT = 3
+const TAPS_TO_ACTIVATE_CHEAT = 5
 let cheatTaps = 0
 // http://10.0.0.145:8080
 
@@ -8,7 +8,7 @@ const FPS = 60
 const BALL_RADIUS = window.innerWidth / 14
 const BALL_SPEED_DIVISOR = 5
 const BALL_RESTITUTION = .85
-const BALL_MIN_SPEED = 10
+const BALL_MIN_SPEED = 15
 const BALL_MAX_SPEED = 30 // not currently used
 const BALL_FRICTION = 1
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
