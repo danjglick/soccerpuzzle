@@ -1,6 +1,7 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
-const TAPS_TO_ACTIVATE_CHEAT = 5
+let cheatSpot = { xPos: 0, yPos: 0 }
+const TAPS_TO_ACTIVATE_CHEAT = 3
 let cheatTaps = 0
 // http://10.0.0.145:8080
 
@@ -55,14 +56,20 @@ let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
 let trophyCount = 0
 
 function handleCheatTap() {
-  if (isCheatEnabled && isClose(touch1, goal, BALL_RADIUS * 2)) { 
+  if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 2)) { 
     cheatTaps++ 
-    if (cheatTaps >= TAPS_TO_ACTIVATE_CHEAT) {
+    if (cheatTaps == TAPS_TO_ACTIVATE_CHEAT) {
+      // cheat effects
+      if (showWelcome) {
+        showTitle = false
+        showWelcome = false
+        generateLevel()
+      }
       for (let i = 0; i < obstacles.length; i++) { 
         obstacles[i].isEnabled = false 
-      } 
-      // insert cheat effects here
-      //goal.isEnabled = false
+      }
+      loopGame()
+      // new cheat effects
     }
   }
 }
@@ -77,71 +84,10 @@ function initialize() {
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
   showMenu()
-  //generateLevel()
-  //loopGame()
-}
-
-function handleTouchstart(e) {
-  touch1.xPos = e.touches[0].clientX
-  touch1.yPos = e.touches[0].clientY
-  if (isClose(touch1, ball, BALL_RADIUS)) {
-    ball.isBeingFlung = true
-    return
-  }
-  if (
-    showTitle && 
-    touch1.xPos > canvas.width * .4 &&
-    touch1.xPos < canvas.width * .6 &&
-    touch1.yPos > canvas.height * .5 &&
-    touch1.yPos < canvas.height * .7
-  ) {
-    //generateLevel()
-  }
-  // Check if tapping on "play" rectangle when correctly spelled
-  if (hasFlung && isPlaySpelledCorrectly()) {
-    if (isTouchingPlayRectangle(touch1)) {
-      generateLevel()
-      return
-    }
-  }
-  handleTouchstartToRotate()
-  handleTouchstartToSwap()
-  handleTouchstartToSwapLetters()
-  handleCheatTap()
-}
-
-function isTouchingPlayRectangle(touch) {
-  // Calculate the circle bounds from all letters
-  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
-  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
-  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
-  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
-  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
-  
-  // Check if touch is within the bounding rectangle of all circles
-  return touch.xPos >= leftX &&
-         touch.xPos <= rightX &&
-         touch.yPos >= topY &&
-         touch.yPos <= bottomY
-}
-
-function handleTouchmove(e) {
-  e.preventDefault()
-  let touch2 = { 
-    xPos: e.touches[0].clientX, 
-    yPos: e.touches[0].clientY 
-  }
-  if (ball.isBeingFlung) {
-    ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
-    ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
-  }
-  handleTouchmoveToRotate(touch2)
 }
 
 function showMenu() {
   areObstaclesHidden = true
-  //generateLevel()
-
   setTimeout(() => showWelcome = true, 1000)
   setTimeout(() => showTitle = true, 2000)
   setTimeout(() => { spawnBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
@@ -187,7 +133,7 @@ function generateLevel() {
   spawnedObstacles = []
   for (let i = 0; i < obstacles.length; i++) spawnObstacle(obstacles[i])
   selectedObstacle = null
-  cheatTaps = 0
+  cheatTaps = 0 // cheat
 }
 
 function spawnBall() {
@@ -203,7 +149,64 @@ function spawnBall() {
     angle: 0,
     isBeingFlung: false, 
     spawn: spawn 
+  }
 }
+
+function handleTouchstart(e) {
+  touch1.xPos = e.touches[0].clientX
+  touch1.yPos = e.touches[0].clientY
+  if (isClose(touch1, ball, BALL_RADIUS)) {
+    ball.isBeingFlung = true
+    return
+  }
+  if (
+    showTitle && 
+    touch1.xPos > canvas.width * .4 &&
+    touch1.xPos < canvas.width * .6 &&
+    touch1.yPos > canvas.height * .5 &&
+    touch1.yPos < canvas.height * .7
+  ) {
+    //generateLevel()
+  }
+  // Check if tapping on "play" rectangle when correctly spelled
+  if (hasFlung && isPlaySpelledCorrectly()) {
+    if (isTouchingPlayRectangle(touch1)) {
+      generateLevel()
+      return
+    }
+  }
+  handleTouchstartToRotate()
+  handleTouchstartToSwap()
+  handleTouchstartToSwapLetters()
+  handleCheatTap()
+}
+
+function isTouchingPlayRectangle(touch) {
+  // Calculate the circle bounds from all letters
+  let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
+  let leftX = sortedLetters[0].xPos - LETTER_SQUARE_SIZE / 2
+  let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
+  let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
+  let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
+  
+  // Check if touch is within the bounding rectangle of all circles
+  return touch.xPos >= leftX &&
+         touch.xPos <= rightX &&F
+         touch.yPos >= topY &&
+         touch.yPos <= bottomY
+}
+
+function handleTouchmove(e) {
+  e.preventDefault()
+  let touch2 = { 
+    xPos: e.touches[0].clientX, 
+    yPos: e.touches[0].clientY 
+  }
+  if (ball.isBeingFlung) {
+    ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
+    ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
+  }
+  handleTouchmoveToRotate(touch2)
 }
 
 function spawnGoal() {
