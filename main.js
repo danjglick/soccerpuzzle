@@ -1,8 +1,12 @@
-// npx --yes live-server --host=0.0.0.0 --port=8080
+// to do:
+// - obstacle shapes and physics
+// - reset and celebration and alt trophies
+// - bugs
 let isCheatEnabled = true
 let cheatSpot = { xPos: 0, yPos: 0 }
 const TAPS_TO_ACTIVATE_CHEAT = 3
 let cheatTaps = 0
+// npx --yes live-server --host=0.0.0.0 --port=8080
 // http://10.0.0.145:8080
 
 const FPS = 60
@@ -55,7 +59,7 @@ let hasFlung = false
 let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
 let trophyCount = 0
 
-// initialize
+// INITIALIZE
 
 function handleCheatTap() {
   if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 2)) { 
@@ -88,7 +92,7 @@ function initialize() {
   generateMenu()
 }
 
-// generate
+// GENERATE
 
 function generateMenu() {
   areObstaclesHidden = true
@@ -177,7 +181,7 @@ function generateObstacle(obstacle) {
   })
 }
 
-// loop
+// LOOP
 
 function loopGame() {
   draw()
@@ -187,7 +191,7 @@ function loopGame() {
   setTimeout(loopGame, getMSPerFrame())
 }
 
-// move
+// MOVE
 
 function moveBall() {
   ball.xPos += ball.xVel
@@ -202,7 +206,7 @@ function moveObstacles() {
   updateLetterSwapAnimation()
 }
 
-// handle
+// HANDLE
 
 function handleTouchstart(e) {
   touch1.xPos = e.touches[0].clientX
@@ -374,7 +378,7 @@ function handleEdge() {
   }
 }
 
-// draw
+// DRAW
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -682,7 +686,7 @@ function drawBonus() {
   }
 }
 
-// utilitize
+// UTILIZE
 
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   return(
@@ -759,7 +763,7 @@ ${bonusText}
   )
 }
 
-// ai 
+// AI
 
 let swapAnimation = null
 
