@@ -424,20 +424,22 @@ function draw() {
   if (!isBallHidden) drawBall()
   drawSelectionElectricity()
   drawSwapAnimationElectricity()
-  //drawSwappableBorders()
   drawLetterSelectionElectricity()
   drawLetterSwapAnimationElectricity()
   drawLetterSelectionBorder()
+  //drawSwappableBorders()
 }
 
 function isPlaySpelledCorrectly() {
   // Sort letters by xPos to get left-to-right order
   let sortedLetters = [...swappableLetters].sort((a, b) => a.xPos - b.xPos)
   // Check if they spell "play" from left to right
-  return sortedLetters[0].char === 'p' &&
-         sortedLetters[1].char === 'l' &&
-         sortedLetters[2].char === 'a' &&
-         sortedLetters[3].char === 'y'
+  return( 
+    sortedLetters[0].char === 'p' &&
+    sortedLetters[1].char === 'l' &&
+    sortedLetters[2].char === 'a' &&
+    sortedLetters[3].char === 'y'
+  )
 }
 
 function drawMenu() {
@@ -473,7 +475,7 @@ function drawMenu() {
       // Draw letter (centered both horizontally and vertically)
       ctx.fillText(letter.char, letter.xPos, letter.yPos)
     }
-    
+    //
     // Draw teal electric border around rectangle if "play" is spelled correctly
     if (isPlaySpelledCorrectly()) {
       drawPlayBorder()
@@ -488,19 +490,19 @@ function drawPlayBorder() {
   let rightX = sortedLetters[3].xPos + LETTER_SQUARE_SIZE / 2
   let topY = sortedLetters[0].yPos - LETTER_SQUARE_SIZE / 2
   let bottomY = sortedLetters[0].yPos + LETTER_SQUARE_SIZE / 2
-  
+  //
   let rectWidth = rightX - leftX
   let rectHeight = bottomY - topY
-  
+  //
   ctx.save()
-  
+  //
   let time = Date.now() * 0.01
-  
+  //
   // Draw multiple layers for electricity effect around the bounding rectangle
   for (let layer = 0; layer < 3; layer++) {
     let opacity = layer === 0 ? 0.3 : (layer === 1 ? 0.6 : 0.8)
     let lineWidth = layer === 0 ? 6 : (layer === 1 ? 3 : 1)
-    
+    //
     ctx.strokeStyle = layer === 0 
       ? `rgba(77, 208, 225, ${opacity})`
       : layer === 1
@@ -509,11 +511,11 @@ function drawPlayBorder() {
     ctx.lineWidth = lineWidth
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
-    
+    //
     // Create jagged border effect
     let segments = 32
     ctx.beginPath()
-    
+    //
     // Top edge
     for (let i = 0; i <= segments / 4; i++) {
       let t = i / (segments / 4)
@@ -523,7 +525,7 @@ function drawPlayBorder() {
       if (i === 0) ctx.moveTo(x, y)
       else ctx.lineTo(x, y)
     }
-    
+    //
     // Right edge
     for (let i = 0; i <= segments / 4; i++) {
       let t = i / (segments / 4)
@@ -532,7 +534,7 @@ function drawPlayBorder() {
       let x = rightX + jitter * (layer === 0 ? 1 : 0.5)
       ctx.lineTo(x, y)
     }
-    
+    //
     // Bottom edge
     for (let i = 0; i <= segments / 4; i++) {
       let t = i / (segments / 4)
@@ -541,7 +543,7 @@ function drawPlayBorder() {
       let y = bottomY + jitter * (layer === 0 ? 1 : 0.5)
       ctx.lineTo(x, y)
     }
-    
+    //
     // Left edge
     for (let i = 0; i <= segments / 4; i++) {
       let t = i / (segments / 4)
@@ -550,11 +552,11 @@ function drawPlayBorder() {
       let x = leftX + jitter * (layer === 0 ? 1 : 0.5)
       ctx.lineTo(x, y)
     }
-    
+    //
     ctx.closePath()
     ctx.stroke()
   }
-  
+  //
   ctx.restore()
 }
 
