@@ -37,7 +37,8 @@ let wormholeA = {}
 let wormholeB = {}
 let key = {}
 let bonus = {}
-let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
+let enemy = {}
+let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus, enemy]
 let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB]
 let touch1 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
@@ -116,10 +117,24 @@ function generateLevel() {
   hasFlung = false
   spawnedObstacles = []
   selectedObstacle = null
+  cheatTaps = 0 
   generateBall()
   generateGoal()
   for (let i = 0; i < obstacles.length; i++) generateObstacle(obstacles[i])
-  cheatTaps = 0 // cheat
+}
+
+function resetLevel() {
+  ball = { 
+    xPos: ball.spawn.xPos, 
+    yPos: ball.spawn.yPos, 
+    xVel: 0, 
+    yVel: 0, 
+    angle: 0,
+    isBeingFlung: false, 
+    spawn: ball.spawn 
+  }
+  key.isEnabled = true
+  bonus.isEnabled = true
 }
 
 function generateBall() {
@@ -259,6 +274,7 @@ function handleCollision() {
   handleWormhole()
   handleKey()
   handleBonus()
+  handleEnemy()
   handleEdge()
 }
 
@@ -352,6 +368,13 @@ function handleBonus() {
   }
 }
 
+function handleEnemy() {
+  if (isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
+    ball.xVel = (enemy.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
+    ball.yVel = (canvas.height - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
+  }
+}
+
 function handleEdge() {
   let isBallAtLeftEdge = ball.xPos - BALL_RADIUS <= 0
   let isBallAtRightEdge = ball.xPos + BALL_RADIUS >= canvas.width
@@ -368,19 +391,20 @@ function handleEdge() {
     ball.yPos = GOAL_HEIGHT + BALL_RADIUS
     ball.yVel = -ball.yVel * BALL_RESTITUTION
   } else if (isBallAtBottomEdge) {
-    ball.yPos = canvas.height - BALL_RADIUS
-    ball.yVel = -ball.yVel * BALL_RESTITUTION
-    let speed = Math.hypot(ball.xVel, ball.yVel)
-    if (!ball.isBeingFlung && speed < BALL_MIN_SPEED) {
-      ball.xVel = 0
-      ball.yVel = 0
-      if (showTitle) {
-        setTimeout(() => {
-          hasFlung = true
-          initializeLetterPositions()
-        }, 1250)
-      }
-    }
+    setTimeout(resetLevel, 1000)
+    // ball.yPos = canvas.height - BALL_RADIUS
+    // ball.yVel = -ball.yVel * BALL_RESTITUTION
+    // let speed = Math.hypot(ball.xVel, ball.yVel)
+    // if (!ball.isBeingFlung && speed < BALL_MIN_SPEED) {
+    //   ball.xVel = 0
+    //   ball.yVel = 0
+    //   if (showTitle) {
+    //     setTimeout(() => {
+    //       hasFlung = true
+    //       initializeLetterPositions()
+    //     }, 1250)
+    //   }
+    // }
   }
 }
 
@@ -398,6 +422,7 @@ function draw() {
     drawWormhole()
     drawKey()
     drawBonus()
+    drawEnemy()
   }
   if (!isBallHidden) drawBall()
   drawSelectionElectricity()
@@ -690,6 +715,17 @@ function drawBonus() {
     ctx.closePath()
     ctx.fill()
   }
+}
+
+function drawEnemy() {
+  ctx.beginPath()
+  ctx.moveTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
+  ctx.lineTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
+  ctx.moveTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
+  ctx.lineTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
+  ctx.lineWidth = 5
+  ctx.strokeStyle = "maroon"
+  ctx.stroke()
 }
 
 // UTILIZE
