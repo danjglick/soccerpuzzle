@@ -1,12 +1,8 @@
-// to do:
-// - obstacle shapes and physics
-// - reset and celebration and alt trophies
-// - bugs
+// npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
 let cheatSpot = { xPos: 0, yPos: 0 }
 const TAPS_TO_ACTIVATE_CHEAT = 3
 let cheatTaps = 0
-// npx --yes live-server --host=0.0.0.0 --port=8080
 // http://10.0.0.145:8080
 
 const FPS = 60
@@ -20,7 +16,7 @@ const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const KEY_SIZE = BALL_RADIUS * 0.75
-const TROPHY_SIZE = BALL_RADIUS * 0.6
+const TROPHY_SIZE = BALL_RADIUS * 0.75
 const MAX_SPAWN_ATTEMPTS = 10000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
@@ -59,8 +55,10 @@ let isBallHidden = false
 let hasFlung = false
 let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
 let trophyCount = 0
+let tries = 0
+let isBottomEdgeEnabled = true
 
-// INITIALIZE
+// DEV
 
 function handleCheatTap() {
   if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 2)) { 
@@ -81,6 +79,14 @@ function handleCheatTap() {
   }
 }
 
+function displayFirst() {
+  //generateMenu()
+  generateLevel()
+  loopGame()
+}
+
+// INITIALIZE
+
 function initialize() {
   canvas = document.getElementById('canvas')
   canvas.width = window.innerWidth
@@ -91,12 +97,6 @@ function initialize() {
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
   displayFirst()
-}
-
-function displayFirst() {
-  //generateMenu()
-  generateLevel()
-  loopGame()
 }
 
 // GENERATE
@@ -111,6 +111,7 @@ function generateMenu() {
 }
 
 function generateLevel() {
+  tries = 0
   areObstaclesHidden = false
   showWelcome = false
   showTitle = false
@@ -121,20 +122,6 @@ function generateLevel() {
   generateBall()
   generateGoal()
   for (let i = 0; i < obstacles.length; i++) generateObstacle(obstacles[i])
-}
-
-function resetLevel() {
-  ball = { 
-    xPos: ball.spawn.xPos, 
-    yPos: ball.spawn.yPos, 
-    xVel: 0, 
-    yVel: 0, 
-    angle: 0,
-    isBeingFlung: false, 
-    spawn: ball.spawn 
-  }
-  key.isEnabled = true
-  bonus.isEnabled = true
 }
 
 function generateBall() {
@@ -296,7 +283,8 @@ function handleGoal() {
         trophyCount++
         bonusText = "+ Bonus!"
       }
-      alert(getAlertText(bonusText))
+      alert("Goal!")
+      //alert(getAlertText(bonusText))
       generateLevel()
     }
   }
@@ -390,8 +378,26 @@ function handleEdge() {
   } else if (isBallAtTopEdge && !isBallHorizontallyAlignedWithGoal) {
     ball.yPos = GOAL_HEIGHT + BALL_RADIUS
     ball.yVel = -ball.yVel * BALL_RESTITUTION
-  } else if (isBallAtBottomEdge) {
-    setTimeout(resetLevel, 1000)
+  } else if (isBottomEdgeEnabled && isBallAtBottomEdge) {
+    isBottomEdgeEnabled = false
+    setTimeout(() => isBottomEdgeEnabled = true, 1100)
+    setTimeout(
+      () => {
+        tries++
+        ball = { 
+          xPos: ball.spawn.xPos, 
+          yPos: ball.spawn.yPos, 
+          xVel: 0, 
+          yVel: 0, 
+          angle: 0,
+          isBeingFlung: false, 
+          spawn: ball.spawn 
+        }
+        key.isEnabled = true
+        bonus.isEnabled = true
+      }, 
+      1000
+    )
     // ball.yPos = canvas.height - BALL_RADIUS
     // ball.yVel = -ball.yVel * BALL_RESTITUTION
     // let speed = Math.hypot(ball.xVel, ball.yVel)
@@ -413,7 +419,7 @@ function handleEdge() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawMenu()
-  drawTrophies()
+  //drawTrophies()
   drawGoal()
   if (!areObstaclesHidden) {
     drawCannon()
@@ -425,12 +431,22 @@ function draw() {
     drawEnemy()
   }
   if (!isBallHidden) drawBall()
-  drawSelectionElectricity()
-  drawSwapAnimationElectricity()
-  drawLetterSelectionElectricity()
-  drawLetterSwapAnimationElectricity()
-  drawLetterSelectionBorder()
+  //drawSelectionElectricity()
+  //drawSwapAnimationElectricity()
+  //drawLetterSelectionElectricity()
+  //drawLetterSwapAnimationElectricity()
+  //drawLetterSelectionBorder()
   //drawSwappableBorders()
+  drawSelectionBorder()
+}
+
+function drawSelectionBorder() {
+  if (!selectedObstacle) return
+  ctx.beginPath()
+  ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
+  ctx.strokeStyle = "green"
+  ctx.lineWidth = 4
+  ctx.stroke()
 }
 
 function drawMenu() {
@@ -695,26 +711,37 @@ function drawKey() {
 
 function drawBonus() {
   if (bonus.isEnabled) {
-    ctx.fillStyle = "green"
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    let starPoints = 5
-    let outerRadius = BALL_RADIUS * .75
-    let innerRadius = BALL_RADIUS * .25
-    for (let i = 0; i < starPoints * 2; i++) {
-      let angle = (Math.PI * i) / starPoints - Math.PI / 2
-      let radius = (i % 2 === 0) ? outerRadius : innerRadius
-      let px = bonus.xPos + Math.cos(angle) * radius
-      let py = bonus.yPos + Math.sin(angle) * radius
-      if (i === 0) {
-        ctx.moveTo(px, py)
-      } else {
-        ctx.lineTo(px, py)
-      }
+    // Determine trophy type based on tries
+    let trophyType = "gold"
+    if (tries === 1) {
+      trophyType = "silver"
+    } else if (tries === 2) {
+      trophyType = "bronze"
+    } else if (tries > 2) {
+      return
     }
-    ctx.closePath()
-    ctx.fill()
+    drawTrophy(bonus.xPos, bonus.yPos, trophyType)
   }
+  //   ctx.fillStyle = "green"
+  //   ctx.lineWidth = 3
+  //   ctx.beginPath()
+  //   let starPoints = 5
+  //   let outerRadius = BALL_RADIUS * .75
+  //   let innerRadius = BALL_RADIUS * .25
+  //   for (let i = 0; i < starPoints * 2; i++) {
+  //     let angle = (Math.PI * i) / starPoints - Math.PI / 2
+  //     let radius = (i % 2 === 0) ? outerRadius : innerRadius
+  //     let px = bonus.xPos + Math.cos(angle) * radius
+  //     let py = bonus.yPos + Math.sin(angle) * radius
+  //     if (i === 0) {
+  //       ctx.moveTo(px, py)
+  //     } else {
+  //       ctx.lineTo(px, py)
+  //     }
+  //   }
+  //   ctx.closePath()
+  //   ctx.fill()
+  // }
 }
 
 function drawEnemy() {
@@ -1310,20 +1337,43 @@ function drawLetterSwapAnimationElectricity() {
   }
 }
 
-function drawTrophy(x, y) {
+function drawTrophy(x, y, trophyType = "gold") {
   ctx.save()
   // Use TROPHY_SIZE as the base radius for scaling
   let radius = TROPHY_SIZE
   // Scale factor to make trophy appear as large as a circle with the same radius
   let scale = 1.6
   let scaledRadius = radius * scale
-  // Draw trophy in gold/yellow with gradient
-  let gradient = ctx.createLinearGradient(x, y - scaledRadius, x, y + scaledRadius)
-  gradient.addColorStop(0, "#ffed4e") // Lighter gold at top
-  gradient.addColorStop(0.5, "#ffd700") // Gold in middle
-  gradient.addColorStop(1, "#daa520") // Darker gold at bottom
+  // Determine colors based on trophy type
+  let gradient, strokeColor, starFill, starStroke
+  if (trophyType === "silver") {
+    gradient = ctx.createLinearGradient(x, y - scaledRadius, x, y + scaledRadius)
+    gradient.addColorStop(0, "#e8e8e8") // Lighter silver at top
+    gradient.addColorStop(0.5, "#c0c0c0") // Silver in middle
+    gradient.addColorStop(1, "#a0a0a0") // Darker silver at bottom
+    strokeColor = "#808080" // Dark silver for outline
+    starFill = "#c0c0c0"
+    starStroke = "#a0a0a0"
+  } else if (trophyType === "bronze") {
+    gradient = ctx.createLinearGradient(x, y - scaledRadius, x, y + scaledRadius)
+    gradient.addColorStop(0, "#cd7f32") // Lighter bronze at top
+    gradient.addColorStop(0.5, "#b87333") // Bronze in middle
+    gradient.addColorStop(1, "#8b4513") // Darker bronze at bottom
+    strokeColor = "#654321" // Dark bronze for outline
+    starFill = "#b87333"
+    starStroke = "#8b4513"
+  } else {
+    // Gold (default)
+    gradient = ctx.createLinearGradient(x, y - scaledRadius, x, y + scaledRadius)
+    gradient.addColorStop(0, "#ffed4e") // Lighter gold at top
+    gradient.addColorStop(0.5, "#ffd700") // Gold in middle
+    gradient.addColorStop(1, "#daa520") // Darker gold at bottom
+    strokeColor = "#b8860b" // Dark gold for outline
+    starFill = "#ffd700"
+    starStroke = "#ffaa00"
+  }
   ctx.fillStyle = gradient
-  ctx.strokeStyle = "#b8860b" // Dark gold for outline
+  ctx.strokeStyle = strokeColor
   ctx.lineWidth = Math.max(1, radius * 0.1)
   // Trophy base (bottom, wider and perfectly centered)
   let baseWidth = scaledRadius * 1.0
@@ -1390,8 +1440,8 @@ function drawTrophy(x, y) {
   ctx.arc(x + handleXOffset, handleY, handleRadius, Math.PI * 1.5, Math.PI * 0.5, false)
   ctx.stroke()
   // Star on top (perfectly centered, 5-pointed star)
-  ctx.fillStyle = "#ffd700"
-  ctx.strokeStyle = "#ffaa00"
+  ctx.fillStyle = starFill
+  ctx.strokeStyle = starStroke
   ctx.lineWidth = Math.max(1, radius * 0.05)
   ctx.beginPath()
   let starX = x
