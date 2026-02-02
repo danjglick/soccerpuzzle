@@ -11,7 +11,7 @@ let cheatTaps = 0
 
 const FPS = 60
 const BALL_RADIUS = window.innerWidth / 16
-const BALL_SPEED_DIVISOR = 5
+const BALL_SPEED_DIVISOR = 8
 const BALL_RESTITUTION = .85
 const BALL_MIN_SPEED = 15
 const BALL_MAX_SPEED = 30 // not currently used
@@ -54,7 +54,7 @@ let letterSwapAnimation = null
 let areObstaclesHidden = false
 let showWelcome = false
 let showTitle = false
-let isBallHidden = true
+let isBallHidden = false
 let hasFlung = false
 let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
 let trophyCount = 0
@@ -89,7 +89,13 @@ function initialize() {
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
-  generateMenu()
+  displayFirst()
+}
+
+function displayFirst() {
+  //generateMenu()
+  generateLevel()
+  loopGame()
 }
 
 // GENERATE
