@@ -22,7 +22,7 @@ const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
 const DOLLAR_COUNT = 5
-const ENEMY_COUNT = 1
+const ENEMY_COUNT = 3
 
 let canvas;
 let ctx;
@@ -39,6 +39,7 @@ let enemies = []
 let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
 let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB]
 let touch1 = { xPos: 0, yPos: 0 }
+let touch2 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
 let rotatingObstacle = {}
 let selectedObstacle = {}
@@ -62,6 +63,7 @@ let isBottomEdgeEnabled = true
 let camera = { xPos: 0, yPos : 0 }
 let dollars = []
 let isCelebration = false
+let draggedObstacle = null
 
 // DEV
 
@@ -250,6 +252,8 @@ function moveBall() {
 function moveObstacles() {
   updateSwapAnimation()
   updateLetterSwapAnimation()
+  if (draggedObstacle) draggedObstacle.xPos = touch2.xPos
+  if (draggedObstacle) draggedObstacle.yPos = touch2.yPos
 }
 
 // HANDLE
@@ -267,15 +271,29 @@ function handleTouchstart(e) {
       return
     }
   }
+  // Check if touching wall end b or cannon handle - if so, don't enable drag-to-move
+  let wallEnds = getWallEnds()
+  let cannonHandle = getCannonHandle()
+  let isTouchingWallEndB = isClose(touch1, wallEnds.b, BALL_RADIUS)
+  let isTouchingCannonHandle = isClose(touch1, cannonHandle, BALL_RADIUS)
+  
+  if (!isTouchingWallEndB && !isTouchingCannonHandle) {
+    for (let i = 0; i < swappableObstacles.length; i++) {
+      let obstacle = swappableObstacles[i]
+      if (isClose(touch1, obstacle, BALL_RADIUS)) {
+        draggedObstacle = obstacle 
+      }  
+    }
+  }
   handleTouchstartToRotate()
-  handleTouchstartToSwap()
+  //handleTouchstartToSwap()
   handleTouchstartToSwapLetters()
   handleCheatTap()
 }
 
 function handleTouchmove(e) {
   e.preventDefault()
-  let touch2 = { 
+  touch2 = { 
     xPos: e.touches[0].clientX + camera.xPos, 
     yPos: e.touches[0].clientY + camera.yPos 
   }
