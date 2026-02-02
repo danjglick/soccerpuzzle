@@ -157,7 +157,7 @@ function generateDollars() {
   for (let i = 0; i < DOLLAR_COUNT; i++) {
     let dollar = {
       xPos: Math.random() * canvas.width,
-      yPos: (Math.random() * canvas.height / 2.5 - (canvas.height * .8) + GOAL_HEIGHT),
+      yPos: (Math.random() * canvas.height / 2 - (canvas.height * .8) + GOAL_HEIGHT),
       isEnabled: true 
     }
     for (let i = 0; i < dollars.length; i++) {
