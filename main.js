@@ -17,11 +17,12 @@ const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const KEY_SIZE = BALL_RADIUS * 0.75
 const TROPHY_SIZE = BALL_RADIUS * 0.75
-const MAX_SPAWN_ATTEMPTS = 10000
+const MAX_SPAWN_ATTEMPTS = 100000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
 const DOLLAR_COUNT = 5
+const ENEMY_COUNT = 1
 
 let canvas;
 let ctx;
@@ -34,8 +35,8 @@ let wormholeA = {}
 let wormholeB = {}
 let key = {}
 let bonus = {}
-let enemy = {}
-let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus, enemy]
+let enemies = []
+let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
 let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB]
 let touch1 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
@@ -100,7 +101,19 @@ function initialize() {
   document.addEventListener('touchmove', handleTouchmove, { passive: false })
   document.addEventListener('touchend', handleTouchend)
   document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
+  initializeEnemies()
   displayFirst()
+}
+
+function initializeEnemies() {
+  for (let i = 0; i < ENEMY_COUNT; i++) {
+    let enemy = {
+      xPos: 0,
+      yPos: 0
+    }
+    enemies.push(enemy)
+    obstacles.push(enemy)
+  }
 }
 
 // GENERATE
@@ -394,9 +407,12 @@ function handleBonus() {
 }
 
 function handleEnemy() {
-  if (enemy.isEnabled && isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
-    ball.xVel = (enemy.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
-    ball.yVel = (canvas.height - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
+  for (let i = 0; i < enemies.length; i++) {
+    let enemy = enemies[i]
+    if (enemy.isEnabled && isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
+      ball.xVel = (enemy.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
+      ball.yVel = (canvas.height - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
+    }
   }
 }
 
@@ -480,7 +496,7 @@ function draw() {
     drawWormhole()
     drawKey()
     drawBonus()
-    drawEnemy()
+    drawEnemies()
   }
   if (!isBallHidden) drawBall()
   //drawSelectionElectricity()
@@ -827,15 +843,18 @@ function drawBonus() {
   // }
 }
 
-function drawEnemy() {
-  ctx.beginPath()
-  ctx.moveTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
-  ctx.lineTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
-  ctx.moveTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
-  ctx.lineTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
-  ctx.lineWidth = 5
-  ctx.strokeStyle = "maroon"
-  ctx.stroke()
+function drawEnemies() {
+  for (let i = 0; i < enemies.length; i++) {
+    let enemy = enemies[i]
+    ctx.beginPath()
+    ctx.moveTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
+    ctx.lineTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
+    ctx.moveTo(enemy.xPos - BALL_RADIUS / 2, enemy.yPos + BALL_RADIUS / 2)
+    ctx.lineTo(enemy.xPos + BALL_RADIUS / 2, enemy.yPos - BALL_RADIUS / 2)
+    ctx.lineWidth = 5
+    ctx.strokeStyle = "maroon"
+    ctx.stroke()
+  }
 }
 
 // UTILIZE
