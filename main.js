@@ -1,15 +1,15 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
 let cheatSpot = { xPos: 0, yPos: 0 }
-const TAPS_TO_ACTIVATE_CHEAT = 3
-let cheatTaps = 0
+const TAPS_TO_ACTIVATE_CHEAT = 1
+let cheatTaps = 3
 // http://10.0.0.145:8080
 
 const FPS = 60
 const BALL_RADIUS = window.innerWidth / 16
-const BALL_SPEED_DIVISOR = 8
+const BALL_SPEED_DIVISOR = 7.5
 const BALL_RESTITUTION = .85
-const BALL_MIN_SPEED = 15
+const BALL_MIN_SPEED = 8
 const BALL_MAX_SPEED = 30 // not currently used
 const BALL_FRICTION = 1
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
@@ -21,6 +21,7 @@ const MAX_SPAWN_ATTEMPTS = 10000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
+const DOLLAR_COUNT = 5
 
 let canvas;
 let ctx;
@@ -57,11 +58,14 @@ let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
 let trophyCount = 0
 let tries = 0
 let isBottomEdgeEnabled = true
+let camera = { xPos: 0, yPos : 0 }
+let dollars = []
+let isCelebration = false
 
 // DEV
 
 function handleCheatTap() {
-  if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 2)) { 
+  if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 4)) { 
     cheatTaps++ 
     if (cheatTaps == TAPS_TO_ACTIVATE_CHEAT) {
       // cheat effects
@@ -121,6 +125,7 @@ function generateLevel() {
   cheatTaps = 0 
   generateBall()
   generateGoal()
+  generateDollars()
   for (let i = 0; i < obstacles.length; i++) generateObstacle(obstacles[i])
 }
 
@@ -146,6 +151,26 @@ function generateGoal() {
     yPos: 0,
     isEnabled: true 
   }
+}
+
+function generateDollars() {
+  for (let i = 0; i < DOLLAR_COUNT; i++) {
+    let dollar = {
+      xPos: Math.random() * canvas.width,
+      yPos: (Math.random() * canvas.height / 2.5 - (canvas.height * .8) + GOAL_HEIGHT),
+      isEnabled: true 
+    }
+    for (let i = 0; i < dollars.length; i++) {
+      while (isClose(dollars[i], dollar, BALL_RADIUS * 5)) {
+        dollar = {
+          xPos: Math.random() * canvas.width * .9 + BALL_RADIUS,
+          yPos: (Math.random() * canvas.height / 2 - (canvas.height * .8) + GOAL_HEIGHT),
+          isEnabled: true 
+        }    
+      }
+    }
+    dollars.push(dollar)
+  } 
 }
 
 function generateObstacle(obstacle) {
@@ -217,8 +242,8 @@ function moveObstacles() {
 // HANDLE
 
 function handleTouchstart(e) {
-  touch1.xPos = e.touches[0].clientX
-  touch1.yPos = e.touches[0].clientY
+  touch1.xPos = e.touches[0].clientX + camera.xPos
+  touch1.yPos = e.touches[0].clientY + camera.yPos
   if (isClose(touch1, ball, BALL_RADIUS)) {
     ball.isBeingFlung = true
     return
@@ -238,8 +263,8 @@ function handleTouchstart(e) {
 function handleTouchmove(e) {
   e.preventDefault()
   let touch2 = { 
-    xPos: e.touches[0].clientX, 
-    yPos: e.touches[0].clientY 
+    xPos: e.touches[0].clientX + camera.xPos, 
+    yPos: e.touches[0].clientY + camera.yPos 
   }
   if (ball.isBeingFlung) {
     ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
@@ -263,6 +288,16 @@ function handleCollision() {
   handleBonus()
   handleEnemy()
   handleEdge()
+  handleDollar()
+}
+
+function handleDollar() {
+  for (let i = 0; i < dollars.length; i++) {
+    let dollar = dollars[i]
+    if (isClose(ball, dollar, BALL_RADIUS + BALL_RADIUS / 2)) {
+      dollar.isEnabled = false
+    }
+  }
 }
 
 function handleGoal() {
@@ -283,9 +318,11 @@ function handleGoal() {
         trophyCount++
         bonusText = "+ Bonus!"
       }
-      alert("Goal!")
+      //alert("Goal!")
       //alert(getAlertText(bonusText))
-      generateLevel()
+      //generateLevel()
+      isCelebration = true
+      setTimeout(() => panCameraUp(), 1000)
     }
   }
 }
@@ -357,7 +394,7 @@ function handleBonus() {
 }
 
 function handleEnemy() {
-  if (isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
+  if (enemy.isEnabled && isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
     ball.xVel = (enemy.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
     ball.yVel = (canvas.height - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
   }
@@ -375,10 +412,11 @@ function handleEdge() {
   } else if (isBallAtRightEdge) {
     ball.xPos = canvas.width - BALL_RADIUS
     ball.xVel = -ball.xVel * BALL_RESTITUTION
-  } else if (isBallAtTopEdge && !isBallHorizontallyAlignedWithGoal) {
+  } else if (!isCelebration && isBallAtTopEdge && !isBallHorizontallyAlignedWithGoal) {
     ball.yPos = GOAL_HEIGHT + BALL_RADIUS
     ball.yVel = -ball.yVel * BALL_RESTITUTION
   } else if (isBottomEdgeEnabled && isBallAtBottomEdge) {
+    console.log(4)
     isBottomEdgeEnabled = false
     setTimeout(() => isBottomEdgeEnabled = true, 1100)
     setTimeout(
@@ -395,6 +433,7 @@ function handleEdge() {
         }
         key.isEnabled = true
         bonus.isEnabled = true
+        cheatTaps = 0
       }, 
       1000
     )
@@ -411,6 +450,16 @@ function handleEdge() {
     //     }, 1250)
     //   }
     // }
+  } else if (isCelebration && ball.yPos <= camera.yPos) {
+    ball.yPos = camera.yPos + BALL_RADIUS
+    ball.yVel = -ball.yVel * BALL_RESTITUTION
+  } else if (isCelebration && ball.yPos >= camera.yPos + canvas.height - GOAL_HEIGHT) {
+    ball.yPos = camera.yPos + canvas.height - GOAL_HEIGHT - BALL_RADIUS
+    ball.yVel = -ball.yVel * BALL_RESTITUTION
+    if (Math.abs(ball.yVel) < BALL_MIN_SPEED) {
+      ball.xVel = 0 
+      ball.yVel = 0
+    }
   }
 }
 
@@ -418,7 +467,10 @@ function handleEdge() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.save()
+  ctx.translate(-camera.xPos, -camera.yPos)
   drawMenu()
+  drawDollars()
   //drawTrophies()
   drawGoal()
   if (!areObstaclesHidden) {
@@ -438,6 +490,37 @@ function draw() {
   //drawLetterSelectionBorder()
   //drawSwappableBorders()
   drawSelectionBorder()
+  ctx.restore()
+}
+
+function drawDollars() {
+  for (let i = 0; i < dollars.length; i++) {
+    let dollar = dollars[i]
+    if (dollar.isEnabled) {
+      ctx.beginPath()
+      ctx.arc(dollar.xPos, dollar.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+      ctx.fillStyle = "green"
+      ctx.fill()
+    }
+  }
+}
+
+function panCameraUp(distance = -(canvas.height - GOAL_HEIGHT * 2), durationMs = 500) {
+  const startY = camera.yPos
+  const targetY = startY + distance
+  const startTime = performance.now()
+  //
+  function step(now) {
+    const t = Math.min((now - startTime) / durationMs, 1)
+    // ease in/out (optional but recommended)
+    const eased = t * (2 - t)
+    //
+    camera.yPos = startY + (targetY - startY) * eased
+    //
+    if (t < 1) requestAnimationFrame(step)
+  }
+  //
+  requestAnimationFrame(step)
 }
 
 function drawSelectionBorder() {
