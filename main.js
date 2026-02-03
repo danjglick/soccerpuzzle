@@ -887,7 +887,7 @@ function drawSelectionBorder() {
   if (!selectedObstacle) return
   ctx.beginPath()
   ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
-  ctx.strokeStyle = "green"
+  ctx.strokeStyle = "grey"
   ctx.lineWidth = 4
   ctx.stroke()
 }
