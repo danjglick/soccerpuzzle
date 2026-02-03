@@ -67,6 +67,8 @@ let hasCelebrated = false
 let hasGotTrophy = false 
 let hasAddedTrophyThisCelebration = false
 let trophies = []
+let isTwinPassing = false
+let hasTwinPassedThisFling = false
 
 /////////////////////////////////////////////////////////////////////////////////// DEV //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -311,6 +313,7 @@ function handleTouchmove(e) {
   if (ball.isBeingFlung) {
     ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
+    setTimeout(() => hasTwinPassedThisFling = false, 100)
   }
   handleTouchmoveToRotate(touch2)
 }
@@ -333,12 +336,35 @@ function handleCollision() {
   handlePuddle()
   handleWall()
   handleWormhole()
+  handleTwin(twinA)
+  handleTwin(twinB)
   handleKey()
   handleBonus()
   handleEnemy()
   handleEdge()
   handleDollar()
 }
+
+let isTwinEnabled = true
+
+function handleTwin(twin) {
+  if (isTwinEnabled && isClose(twin, ball, BALL_RADIUS + BALL_RADIUS * .75) && !hasTwinPassedThisFling) {
+    if (!isTwinPassing) { 
+      let otherTwin = twin == twinA ? twinB : twinA
+      ball.xVel = (otherTwin.xPos - ball.xPos) * .03
+      ball.yVel = (otherTwin.yPos - ball.yPos) * .03
+      isTwinPassing = true
+      isTwinEnabled = false
+      setTimeout(() => isTwinEnabled = true, 300)
+    } else {
+      ball.xVel = 0
+      ball.yVel = 0
+      isTwinPassing = false
+      hasTwinPassedThisFling = true
+    }
+  }
+}
+
 
 function handleGoal() {
   if (goal.isEnabled && !key.isEnabled) {
