@@ -32,11 +32,13 @@ let puddle = {}
 let wall = {}
 let wormholeA = {}
 let wormholeB = {}
+let twinA = {}
+let twinB = {}
 let key = {}
 let bonus = {}
 let enemies = []
-let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, key, bonus]
-let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB]
+let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, twinA, twinB, key, bonus]
+let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB, twinA, twinB]
 let touch1 = { xPos: 0, yPos: 0 }
 let spawnedObstacles = []
 let rotatingObstacle = {}
@@ -149,7 +151,7 @@ function generateBall() {
   }
   ball = { 
     xPos: spawn.xPos, 
-    yPos: spawn.yPos, 
+    yPos: spawn.yPos,
     xVel: 0, 
     yVel: 0, 
     angle: 0,
@@ -537,6 +539,7 @@ function draw() {
     drawWormhole()
     drawKey()
     drawEnemies()
+    drawTwins()
   }
   if (!isBallHidden) drawBall()
   drawBonus()
@@ -548,27 +551,6 @@ function draw() {
   //drawSwappableBorders()
   drawSelectionBorder()
   ctx.restore()
-}
-
-function drawDollars() {
-  for (let i = 0; i < dollars.length; i++) {
-    let dollar = dollars[i]
-    if (dollar.isEnabled) {
-      ctx.beginPath()
-      ctx.arc(dollar.xPos, dollar.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
-      ctx.fillStyle = "green"
-      ctx.fill()
-    }
-  }
-}
-
-function drawSelectionBorder() {
-  if (!selectedObstacle) return
-  ctx.beginPath()
-  ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
-  ctx.strokeStyle = "green"
-  ctx.lineWidth = 4
-  ctx.stroke()
 }
 
 function drawMenu() {
@@ -719,7 +701,8 @@ function drawGoal() {
 }
 
 function drawCannon() {
-  let color = "red"
+  let color = "#950606"
+  // color = ""
   ctx.save()
   ctx.translate(cannon.xPos, cannon.yPos)
   ctx.rotate(cannon.angle)
@@ -748,7 +731,7 @@ function drawCannon() {
 function drawPuddle() {
   ctx.beginPath()
   ctx.arc(puddle.xPos, puddle.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
-  ctx.fillStyle = "blue"
+  ctx.fillStyle = "#00008B"
   ctx.fill()
 }
 
@@ -790,6 +773,33 @@ function drawWormhole() {
   ctx.strokeStyle = color
   ctx.stroke()
   ctx.closePath()
+}
+
+function drawTwins() {
+  const tri1 = { x: twinA.xPos, y: twinA.yPos };
+  const tri2 = { x: twinB.xPos, y: twinB.yPos };
+  const height = BALL_RADIUS * 1.4
+  const base = BALL_RADIUS * 1.1
+  function drawTriangleAt(center, target) {
+    const angle = Math.atan2(target.y - center.y, target.x - center.x);
+    ctx.save();
+    // 2. Move origin to this triangle's center
+    ctx.translate(center.x, center.y);
+    // 3. Rotate context (subtracting 90 deg if the tip is drawn at 0,0)
+    ctx.rotate(angle - Math.PI / 2)
+    // 4. Draw the sharp isosceles triangle
+    ctx.beginPath()
+    ctx.moveTo(0, height) // Tip pointing toward the target
+    ctx.lineTo(-base / 2, 0) // Bottom left
+    ctx.lineTo(base / 2, 0) // Bottom right
+    ctx.closePath();
+    //
+    ctx.fillStyle = "#477b50"
+    ctx.fill();
+    ctx.restore();
+  }
+  drawTriangleAt(tri1, tri2);
+  drawTriangleAt(tri2, tri1);
 }
 
 function drawKey() {
@@ -861,7 +871,28 @@ function drawEnemies() {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////// UTILITIES //////////////////////////////////////////////////////////////////////////////////////////////////////////
+function drawDollars() {
+  for (let i = 0; i < dollars.length; i++) {
+    let dollar = dollars[i]
+    if (dollar.isEnabled) {
+      ctx.beginPath()
+      ctx.arc(dollar.xPos, dollar.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+      ctx.fillStyle = "green"
+      ctx.fill()
+    }
+  }
+}
+
+function drawSelectionBorder() {
+  if (!selectedObstacle) return
+  ctx.beginPath()
+  ctx.arc(selectedObstacle.xPos, selectedObstacle.yPos, BALL_RADIUS * 1.3, 0, 2 * Math.PI)
+  ctx.strokeStyle = "green"
+  ctx.lineWidth = 4
+  ctx.stroke()
+}
+
+///////////////////////////////////////////////////////////////////////////////// UTIL //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function panCamera(isUp = true, durationMs = 500) {
   let distance = isUp ? -(canvas.height - GOAL_HEIGHT * 2) : canvas.height - GOAL_HEIGHT * 2
