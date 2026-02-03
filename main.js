@@ -759,7 +759,7 @@ function drawWall() {
 }
 
 function drawWormhole() {
-  let color = "#572991"
+  let color = "purple"
   for (let wormhole of [wormholeA, wormholeB]) {
     ctx.beginPath()
     ctx.arc(wormhole.xPos, wormhole.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
