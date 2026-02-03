@@ -1,3 +1,22 @@
 body {
   background-color: #071c07;
 }
+
+#container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+canvas {
+  display: block;
+}
+
+button {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translate(-50%, -50%);
+  z-index: 10;  
+}
+

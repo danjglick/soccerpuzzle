@@ -9,7 +9,7 @@ const FPS = 60
 const BALL_RADIUS = window.innerWidth / 16
 const BALL_SPEED_DIVISOR = 7.5
 const BALL_RESTITUTION = .85
-const BALL_MIN_SPEED = 8
+const BALL_MIN_SPEED = 10
 const BALL_MAX_SPEED = 30 // not currently used
 const BALL_FRICTION = 1
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
@@ -22,7 +22,7 @@ const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
 const DOLLAR_COUNT = 5
-const ENEMY_COUNT = 1
+const ENEMY_COUNT = 2
 
 let canvas;
 let ctx;
@@ -62,8 +62,9 @@ let isBottomEdgeEnabled = true
 let camera = { xPos: 0, yPos : 0 }
 let dollars = []
 let isCelebration = false
+let hasCelebrated = false
 
-// DEV
+//////////////////////////// DEV ////////////////////////////////////////////////////////////////////////////////////////////////
 
 function handleCheatTap() {
   if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 4)) { 
@@ -90,17 +91,23 @@ function displayFirst() {
   loopGame()
 }
 
-// INITIALIZE
+///////////////////////////// INITIALIZE ////////////////////////////////////////////////////////////////////////////////////////////
 
 function initialize() {
-  canvas = document.getElementById('canvas')
+  canvas = document.getElementById("canvas")
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
-  ctx = canvas.getContext('2d')
-  document.addEventListener('touchstart', handleTouchstart)
-  document.addEventListener('touchmove', handleTouchmove, { passive: false })
-  document.addEventListener('touchend', handleTouchend)
-  document.addEventListener('wheel', (e) => { e.preventDefault() }, { passive: false })
+  ctx = canvas.getContext("2d")
+  document.addEventListener("touchstart", handleTouchstart)
+  document.addEventListener("touchmove", handleTouchmove, { passive: false })
+  document.addEventListener("touchend", handleTouchend)
+  document.addEventListener("wheel", (e) => e.preventDefault(), { passive: false })
+  document.getElementById("continueBtn").addEventListener("click", () => {
+    isCelebration = false
+    document.getElementById("continueBtn").hidden = true
+    panCameraUp(canvas.height - GOAL_HEIGHT * 2, 0)
+    generateLevel() 
+  })
   initializeEnemies()
   displayFirst()
 }
@@ -116,7 +123,7 @@ function initializeEnemies() {
   }
 }
 
-// GENERATE
+////////////////////////////// GENERATE ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function generateMenu() {
   areObstaclesHidden = true
@@ -128,6 +135,7 @@ function generateMenu() {
 }
 
 function generateLevel() {
+  isCelebration = false
   tries = 0
   areObstaclesHidden = false
   showWelcome = false
@@ -227,7 +235,7 @@ function generateObstacle(obstacle) {
   })
 }
 
-// LOOP
+//////////////////////////////////////////////// LOOP ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function loopGame() {
   draw()
@@ -237,7 +245,7 @@ function loopGame() {
   setTimeout(loopGame, getMSPerFrame())
 }
 
-// MOVE
+//////////////////////////////////////////// MOVE /////////////////////////////////////////////////////////////////////////////////////////////////
 
 function moveBall() {
   ball.xPos += ball.xVel
@@ -252,7 +260,7 @@ function moveObstacles() {
   updateLetterSwapAnimation()
 }
 
-// HANDLE
+/////////////////////////////////////////// HANDLE //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function handleTouchstart(e) {
   touch1.xPos = e.touches[0].clientX + camera.xPos
@@ -302,6 +310,10 @@ function handleCollision() {
   handleEnemy()
   handleEdge()
   handleDollar()
+}
+
+function handleContinue() {
+  butto  
 }
 
 function handleDollar() {
@@ -434,6 +446,7 @@ function handleEdge() {
   } else if (isBottomEdgeEnabled && isBallAtBottomEdge) {
     console.log(4)
     isBottomEdgeEnabled = false
+    ball.isBeingFlung = false // Reset immediately to prevent velocity accumulation
     setTimeout(() => isBottomEdgeEnabled = true, 1100)
     setTimeout(
       () => {
@@ -475,11 +488,12 @@ function handleEdge() {
     if (Math.abs(ball.yVel) < BALL_MIN_SPEED) {
       ball.xVel = 0 
       ball.yVel = 0
+      hasCelebrated = true
     }
   }
 }
 
-// DRAW
+//////////////////////////////////////////////// DRAW ////////////////////////////////////////////////////////////////////////////////////////////////
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -522,6 +536,7 @@ function drawDollars() {
 }
 
 function panCameraUp(distance = -(canvas.height - GOAL_HEIGHT * 2), durationMs = 500) {
+  if (isCelebration) setTimeout(() => document.getElementById("continueBtn").hidden = false, 3000)
   const startY = camera.yPos
   const targetY = startY + distance
   const startTime = performance.now()
@@ -821,26 +836,6 @@ function drawBonus() {
     }
     drawTrophy(bonus.xPos, bonus.yPos, trophyType)
   }
-  //   ctx.fillStyle = "green"
-  //   ctx.lineWidth = 3
-  //   ctx.beginPath()
-  //   let starPoints = 5
-  //   let outerRadius = BALL_RADIUS * .75
-  //   let innerRadius = BALL_RADIUS * .25
-  //   for (let i = 0; i < starPoints * 2; i++) {
-  //     let angle = (Math.PI * i) / starPoints - Math.PI / 2
-  //     let radius = (i % 2 === 0) ? outerRadius : innerRadius
-  //     let px = bonus.xPos + Math.cos(angle) * radius
-  //     let py = bonus.yPos + Math.sin(angle) * radius
-  //     if (i === 0) {
-  //       ctx.moveTo(px, py)
-  //     } else {
-  //       ctx.lineTo(px, py)
-  //     }
-  //   }
-  //   ctx.closePath()
-  //   ctx.fill()
-  // }
 }
 
 function drawEnemies() {
@@ -857,7 +852,7 @@ function drawEnemies() {
   }
 }
 
-// UTILIZE
+////////////////////////////////////////////// UTILITIES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   return(
@@ -934,7 +929,7 @@ ${bonusText}
   )
 }
 
-// AI
+//////////////////////////////////////////// AI ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 let swapAnimation = null
 
