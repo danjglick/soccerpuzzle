@@ -10,13 +10,12 @@ const BALL_RADIUS = window.innerWidth / 16
 const BALL_SPEED_DIVISOR = 7.5
 const BALL_RESTITUTION = .85
 const BALL_MIN_SPEED = 10
-const BALL_MAX_SPEED = 30 // not currently used
 const BALL_FRICTION = 1
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
-const KEY_SIZE = BALL_RADIUS * 0.75
-const TROPHY_SIZE = BALL_RADIUS * 0.75
+const KEY_SIZE = BALL_RADIUS * .8
+const TROPHY_SIZE = BALL_RADIUS * .8
 const MAX_SPAWN_ATTEMPTS = 100000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
@@ -63,8 +62,11 @@ let camera = { xPos: 0, yPos : 0 }
 let dollars = []
 let isCelebration = false
 let hasCelebrated = false
+let hasGotTrophy = false 
+let hasAddedTrophyThisCelebration = false
+let trophies = []
 
-//////////////////////////// DEV ////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////// DEV //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function handleCheatTap() {
   if (isCheatEnabled && isClose(touch1, cheatSpot, BALL_RADIUS * 4)) { 
@@ -81,17 +83,19 @@ function handleCheatTap() {
       }
       loopGame()
       // new cheat effects
+      bonus.isEnabled = true
+      hasGotTrophy = true
     }
   }
 }
 
-function displayFirst() {
-  //generateMenu()
-  generateLevel()
-  loopGame()
-}
+// function displayFirst() {
+//   //generateMenu()
+//   generateLevel()
+//   loopGame()
+// }
 
-///////////////////////////// INITIALIZE ////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////// INITIALIZE /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function initialize() {
   canvas = document.getElementById("canvas")
@@ -102,52 +106,40 @@ function initialize() {
   document.addEventListener("touchmove", handleTouchmove, { passive: false })
   document.addEventListener("touchend", handleTouchend)
   document.addEventListener("wheel", (e) => e.preventDefault(), { passive: false })
-  document.getElementById("continueBtn").addEventListener("click", () => {
-    isCelebration = false
-    document.getElementById("continueBtn").hidden = true
-    panCameraUp(canvas.height - GOAL_HEIGHT * 2, 0)
-    generateLevel() 
-  })
-  initializeEnemies()
-  displayFirst()
+  document.getElementById("continueBtn").addEventListener("click", handleContinueBtn)
+  generateLevel()
+  loopGame()
 }
 
-function initializeEnemies() {
-  for (let i = 0; i < ENEMY_COUNT; i++) {
-    let enemy = {
-      xPos: 0,
-      yPos: 0
-    }
-    enemies.push(enemy)
-    obstacles.push(enemy)
-  }
-}
+///////////////////////////////////////////////////////////////////////////////// GENERATE ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////// GENERATE ///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-function generateMenu() {
-  areObstaclesHidden = true
-  setTimeout(() => showWelcome = true, 1000)
-  setTimeout(() => showTitle = true, 2000)
-  setTimeout(() => { generateBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
-  initializeLetterPositions()
-  loopGame()  
-}
+// function generateMenu() {
+//   areObstaclesHidden = true
+//   setTimeout(() => showWelcome = true, 1000)
+//   setTimeout(() => showTitle = true, 2000)
+//   setTimeout(() => { generateBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
+//   initializeLetterPositions()
+//   loopGame()  
+// }
 
 function generateLevel() {
   isCelebration = false
   tries = 0
+  enemies = []
   areObstaclesHidden = false
   showWelcome = false
   showTitle = false
   hasFlung = false
   spawnedObstacles = []
   selectedObstacle = null
-  cheatTaps = 0 
+  cheatTaps = 0
+  hasAddedTrophyThisCelebration = false 
+  hasGotTrophy = false
   generateBall()
   generateGoal()
-  generateDollars()
+  generateEnemyList()
   for (let i = 0; i < obstacles.length; i++) generateObstacle(obstacles[i])
+  generateDollars()
 }
 
 function generateBall() {
@@ -171,6 +163,17 @@ function generateGoal() {
     xPos: GOAL_WIDTH + (canvas.width - 2 * GOAL_WIDTH) * Math.random(),
     yPos: 0,
     isEnabled: true 
+  }
+}
+
+function generateEnemyList() {
+  for (let i = 0; i < ENEMY_COUNT; i++) {
+    let enemy = {
+      xPos: 0,
+      yPos: 0
+    }
+    enemies.push(enemy)
+    obstacles.push(enemy)
   }
 }
 
@@ -233,9 +236,15 @@ function generateObstacle(obstacle) {
     xPos: obstacle.xPos, 
     yPos: obstacle.yPos 
   })
+  if (obstacle == bonus) {
+    bonus.spawn = {
+      xPos: obstacle.xPos,
+      yPos: obstacle.yPos
+    }
+  }
 }
 
-//////////////////////////////////////////////// LOOP ////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////// LOOP /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function loopGame() {
   draw()
@@ -245,7 +254,7 @@ function loopGame() {
   setTimeout(loopGame, getMSPerFrame())
 }
 
-//////////////////////////////////////////// MOVE /////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////// MOVE /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function moveBall() {
   ball.xPos += ball.xVel
@@ -253,14 +262,24 @@ function moveBall() {
   ball.angle += ball.xVel / BALL_RADIUS
   ball.xVel *= BALL_FRICTION
   ball.yVel *= BALL_FRICTION
+  if (isCelebration && hasGotTrophy && !hasAddedTrophyThisCelebration && ball.yVel > 0) {
+    hasGotTrophy = false
+    bonus.isEnabled = false
+    hasAddedTrophyThisCelebration = true
+    trophies.push(tries)
+  }
 }
 
 function moveObstacles() {
   updateSwapAnimation()
-  updateLetterSwapAnimation()
+  // updateLetterSwapAnimation()
+  if (hasGotTrophy) {
+    bonus.xPos = ball.xPos
+    bonus.yPos = ball.yPos
+  }
 }
 
-/////////////////////////////////////////// HANDLE //////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////// HANDLE /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function handleTouchstart(e) {
   touch1.xPos = e.touches[0].clientX + camera.xPos
@@ -269,15 +288,15 @@ function handleTouchstart(e) {
     ball.isBeingFlung = true
     return
   }
-  if (hasFlung && isPlaySpelledCorrectly()) { // Check if tapping on "play" rectangle when correctly spelled
-    if (isTouchingPlayRectangle(touch1)) {
-      generateLevel()
-      return
-    }
-  }
+  // if (hasFlung && isPlaySpelledCorrectly()) { // Check if tapping on "play" rectangle when correctly spelled
+  //   if (isTouchingPlayRectangle(touch1)) {
+  //     generateLevel()
+  //     return
+  //   }
+  // }
+  // handleTouchstartToSwapLetters()
   handleTouchstartToRotate()
   handleTouchstartToSwap()
-  handleTouchstartToSwapLetters()
   handleCheatTap()
 }
 
@@ -299,6 +318,13 @@ function handleTouchend() {
   rotatingObstacle = null
 }
 
+function handleContinueBtn() {
+  isCelebration = false
+  document.getElementById("continueBtn").hidden = true
+  panCamera(false, 0)
+  generateLevel()   
+}
+
 function handleCollision() {
   handleGoal()
   handleCannon()
@@ -310,19 +336,6 @@ function handleCollision() {
   handleEnemy()
   handleEdge()
   handleDollar()
-}
-
-function handleContinue() {
-  butto  
-}
-
-function handleDollar() {
-  for (let i = 0; i < dollars.length; i++) {
-    let dollar = dollars[i]
-    if (isClose(ball, dollar, BALL_RADIUS + BALL_RADIUS / 2)) {
-      dollar.isEnabled = false
-    }
-  }
 }
 
 function handleGoal() {
@@ -347,7 +360,8 @@ function handleGoal() {
       //alert(getAlertText(bonusText))
       //generateLevel()
       isCelebration = true
-      setTimeout(() => panCameraUp(), 1000)
+      hasAddedTrophyThisCelebration = false
+      setTimeout(() => panCamera(), 1000)
     }
   }
 }
@@ -414,7 +428,7 @@ function handleKey() {
 
 function handleBonus() {
   if (isClose(ball, bonus, BALL_RADIUS + BALL_RADIUS / 2)) {
-    bonus.isEnabled = false
+    hasGotTrophy = true
   }
 }
 
@@ -424,6 +438,15 @@ function handleEnemy() {
     if (enemy.isEnabled && isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
       ball.xVel = (enemy.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
       ball.yVel = (canvas.height - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
+    }
+  }
+}
+
+function handleDollar() {
+  for (let i = 0; i < dollars.length; i++) {
+    let dollar = dollars[i]
+    if (isClose(ball, dollar, BALL_RADIUS + BALL_RADIUS / 2)) {
+      dollar.isEnabled = false
     }
   }
 }
@@ -444,9 +467,10 @@ function handleEdge() {
     ball.yPos = GOAL_HEIGHT + BALL_RADIUS
     ball.yVel = -ball.yVel * BALL_RESTITUTION
   } else if (isBottomEdgeEnabled && isBallAtBottomEdge) {
-    console.log(4)
     isBottomEdgeEnabled = false
-    ball.isBeingFlung = false // Reset immediately to prevent velocity accumulation
+    ball.isBeingFlung = false
+    ball.xVel = 0 // Reset velocity immediately to prevent accumulation
+    ball.yVel = 0
     setTimeout(() => isBottomEdgeEnabled = true, 1100)
     setTimeout(
       () => {
@@ -463,6 +487,9 @@ function handleEdge() {
         key.isEnabled = true
         bonus.isEnabled = true
         cheatTaps = 0
+        hasGotTrophy = false
+        bonus.xPos = bonus.spawn.xPos
+        bonus.yPos = bonus.spawn.yPos
       }, 
       1000
     )
@@ -493,7 +520,7 @@ function handleEdge() {
   }
 }
 
-//////////////////////////////////////////////// DRAW ////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////// DRAW ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -501,7 +528,7 @@ function draw() {
   ctx.translate(-camera.xPos, -camera.yPos)
   drawMenu()
   drawDollars()
-  //drawTrophies()
+  drawTrophies()
   drawGoal()
   if (!areObstaclesHidden) {
     drawCannon()
@@ -509,10 +536,10 @@ function draw() {
     drawWall()
     drawWormhole()
     drawKey()
-    drawBonus()
     drawEnemies()
   }
   if (!isBallHidden) drawBall()
+  drawBonus()
   //drawSelectionElectricity()
   //drawSwapAnimationElectricity()
   //drawLetterSelectionElectricity()
@@ -533,25 +560,6 @@ function drawDollars() {
       ctx.fill()
     }
   }
-}
-
-function panCameraUp(distance = -(canvas.height - GOAL_HEIGHT * 2), durationMs = 500) {
-  if (isCelebration) setTimeout(() => document.getElementById("continueBtn").hidden = false, 3000)
-  const startY = camera.yPos
-  const targetY = startY + distance
-  const startTime = performance.now()
-  //
-  function step(now) {
-    const t = Math.min((now - startTime) / durationMs, 1)
-    // ease in/out (optional but recommended)
-    const eased = t * (2 - t)
-    //
-    camera.yPos = startY + (targetY - startY) * eased
-    //
-    if (t < 1) requestAnimationFrame(step)
-  }
-  //
-  requestAnimationFrame(step)
 }
 
 function drawSelectionBorder() {
@@ -605,15 +613,16 @@ function drawMenu() {
 }
 
 function drawTrophies() {
-  // Draw trophies horizontally starting from top left corner
-  let startX = TROPHY_SIZE
-  let startY = TROPHY_SIZE
-  let spacing = TROPHY_SIZE * 2.5 // Space between trophies
-  //
-  for (let i = 0; i < trophyCount; i++) {
+  let startX = canvas.width / 10
+  let startY = -canvas.height * .85
+  let spacing = TROPHY_SIZE * 2.5
+  for (let i = 0; i < trophies.length; i++) {
     let x = startX + i * spacing
     let y = startY
-    drawTrophy(x, y)
+    let trophyType = "gold"
+    if (trophies[i] === 1) trophyType = "silver"
+    if (trophies[i] >= 2) trophyType = "bronze"
+    drawTrophy(x, y, trophyType)      
   }
 }
 
@@ -852,7 +861,27 @@ function drawEnemies() {
   }
 }
 
-////////////////////////////////////////////// UTILITIES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////// UTILITIES //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function panCamera(isUp = true, durationMs = 500) {
+  let distance = isUp ? -(canvas.height - GOAL_HEIGHT * 2) : canvas.height - GOAL_HEIGHT * 2
+  if (isCelebration) setTimeout(() => document.getElementById("continueBtn").hidden = false, 3000)
+  const startY = camera.yPos
+  const targetY = startY + distance
+  const startTime = performance.now()
+  //
+  function step(now) {
+    const t = Math.min((now - startTime) / durationMs, 1)
+    // ease in/out (optional but recommended)
+    const eased = t * (2 - t)
+    //
+    camera.yPos = startY + (targetY - startY) * eased
+    //
+    if (t < 1) requestAnimationFrame(step)
+  }
+  //
+  requestAnimationFrame(step)
+}
 
 function isClose(objectA, objectB, threshold = BALL_RADIUS * 2) {
   return(
@@ -929,7 +958,7 @@ ${bonusText}
   )
 }
 
-//////////////////////////////////////////// AI ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////// AI //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 let swapAnimation = null
 
