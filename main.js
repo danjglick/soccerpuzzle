@@ -21,7 +21,7 @@ const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
 const DOLLAR_COUNT = 5
-const ENEMY_COUNT = 1
+const ENEMY_COUNT = 0
 
 let canvas;
 let ctx;
