@@ -731,7 +731,7 @@ function drawCannon() {
 function drawPuddle() {
   ctx.beginPath()
   ctx.arc(puddle.xPos, puddle.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
-  ctx.fillStyle = "#00008B"
+  ctx.fillStyle = "#305CDE"
   ctx.fill()
 }
 
