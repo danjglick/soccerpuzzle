@@ -346,20 +346,29 @@ function handleCollision() {
   handleDollar()
 }
 
+function disable(x) {
+  x.isEnabled = false
+}
+
+function enable(x) {
+  x.isEnabled = true
+}
+
 function handleTwin(twin) {
-  if (twin.isEnabled && isClose(twin, ball, BALL_RADIUS + BALL_RADIUS * .75) && !hasTwinPassedThisFling) {
+  if (twin.isEnabled && isClose(twin, ball, BALL_RADIUS * 1.5) && !hasTwinPassedThisFling) {
     if (!isTwinPassing) { 
       let otherTwin = twin == twinA ? twinB : twinA
-      ball.xVel = (otherTwin.xPos - ball.xPos) * .03
-      ball.yVel = (otherTwin.yPos - ball.yPos) * .03
+      disable(twin)
+      enable(otherTwin)
       isTwinPassing = true
-      isTwinEnabled = false
-      setTimeout(() => isTwinEnabled = true, 300)
+      ball.xVel = (otherTwin.xPos - ball.xPos) * .05
+      ball.yVel = (otherTwin.yPos - ball.yPos) * .05
     } else {
-      ball.xVel = 0
-      ball.yVel = 0
+      enable(twin)
       isTwinPassing = false
       hasTwinPassedThisFling = true
+      ball.xVel = 0
+      ball.yVel = 0
     }
   }
 }
@@ -414,7 +423,7 @@ function handleCannon() {
 }
 
 function handlePuddle() {
-  if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS * 2)) {
+  if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS + BALL_RADIUS * .75)) {
     ball.xVel = 0
     ball.yVel = 0
   }
@@ -492,7 +501,7 @@ function handleEdge() {
   let isBallAtLeftEdge = ball.xPos - BALL_RADIUS <= 0
   let isBallAtRightEdge = ball.xPos + BALL_RADIUS >= canvas.width
   let isBallAtTopEdge = ball.yPos - BALL_RADIUS < GOAL_HEIGHT
-  let isBallAtBottomEdge = ball.yPos + BALL_RADIUS > canvas.height
+  let isBallAtBottomEdge = ball.yPos + BALL_RADIUS > canvas.height + BALL_RADIUS * 2
   let isBallHorizontallyAlignedWithGoal = ball.xPos > goal.xPos - GOAL_WIDTH / 2 && ball.xPos < goal.xPos + GOAL_WIDTH / 2 
   if (isBallAtLeftEdge) {
     ball.xPos = BALL_RADIUS
