@@ -1,8 +1,8 @@
 // npx --yes live-server --host=0.0.0.0 --port=8080
 let isCheatEnabled = true
 let cheatSpot = { xPos: 0, yPos: 0 }
-const TAPS_TO_ACTIVATE_CHEAT = 1
-let cheatTaps = 3
+const TAPS_TO_ACTIVATE_CHEAT = 3
+let cheatTaps = 0
 // http://10.0.0.145:8080
 
 const FPS = 60
@@ -210,7 +210,6 @@ function generateObstacle(obstacle) {
   let minDistance = MIN_SPACE_FOR_SPAWN
   let maxAttempts = MAX_SPAWN_ATTEMPTS
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    console.log(1)
     obstacle.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
     obstacle.yPos = minY + (maxY - minY) * Math.random()
     if (obstacle === wall) {
@@ -327,6 +326,7 @@ function handleTouchend() {
 function handleContinueBtn() {
   isCelebration = false
   document.getElementById("continueBtn").hidden = true
+  dollars = []
   panCamera(false, 0)
   generateLevel()   
 }
