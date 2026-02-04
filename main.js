@@ -727,8 +727,7 @@ function drawGoal() {
 }
 
 function drawCannon() {
-  let color = "#950606"
-  // color = ""
+  let color = "#c04667"
   ctx.save()
   ctx.translate(cannon.xPos, cannon.yPos)
   ctx.rotate(cannon.angle)
