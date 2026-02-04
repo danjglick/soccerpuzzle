@@ -16,8 +16,7 @@ button {
   position: absolute;
   left: 82%;
   top: 3.5%;
-  transform: translate(-50%, -50%);
-  z-index: 10;  
+  transform: translate(-50%, -50%);  
   font-size: 20;
   font-weight: bold;
   color: white;

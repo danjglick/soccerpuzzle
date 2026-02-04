@@ -85,7 +85,6 @@ function handleCheatTap() {
       for (let i = 0; i < obstacles.length; i++) { 
         obstacles[i].isEnabled = false 
       }
-      loopGame()
       // new cheat effects
       bonus.isEnabled = true
       hasGotTrophy = true
@@ -390,15 +389,15 @@ function handleGoal() {
       isCelebration = true
       hasAddedTrophyThisCelebration = false
       hasFlung = false
-      function shelfTrophy() {
-        if (hasGotTrophy && !hasAddedTrophyThisCelebration) {
-          hasGotTrophy = false
-          bonus.isEnabled = false
-          hasAddedTrophyThisCelebration = true
-          trophies.push(tries)
-        }
-      }
-      setTimeout(shelfTrophy, 2500) 
+      // function shelfTrophy() {
+      //   if (hasGotTrophy && !hasAddedTrophyThisCelebration) {
+      //     hasGotTrophy = false
+      //     bonus.isEnabled = false
+      //     hasAddedTrophyThisCelebration = true
+      //     trophies.push(tries)
+      //   }
+      // }
+      // setTimeout(shelfTrophy, 2500) 
       setTimeout(() => panCamera(), 1000)
     }
   }
@@ -555,7 +554,16 @@ function handleEdge() {
       ball.yVel = 0
       hasCelebrated = true
       if (hasFlung) {
-        setTimeout(() => document.getElementById("continueBtn").hidden = false, 1000)
+        function shelfTrophy() {
+          if (hasGotTrophy && !hasAddedTrophyThisCelebration) {
+            hasGotTrophy = false
+            bonus.isEnabled = false
+            hasAddedTrophyThisCelebration = true
+            trophies.push(tries)
+          }
+        }
+        setTimeout(shelfTrophy, 1000)
+        setTimeout(() => document.getElementById("continueBtn").hidden = false, 2000)
       }
     }
   }
