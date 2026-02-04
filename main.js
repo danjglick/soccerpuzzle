@@ -16,7 +16,7 @@ const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5
 const KEY_SIZE = BALL_RADIUS * .8
 const TROPHY_SIZE = BALL_RADIUS * .8
-const MAX_SPAWN_ATTEMPTS = 100000
+const MAX_SPAWN_ATTEMPTS = 1000
 const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
 const COOLDOWN_DURATION = 3000
 const SWAP_DURATION = 20
@@ -211,6 +211,7 @@ function generateObstacle(obstacle) {
   let minDistance = MIN_SPACE_FOR_SPAWN
   let maxAttempts = MAX_SPAWN_ATTEMPTS
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    console.log(1)
     obstacle.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
     obstacle.yPos = minY + (maxY - minY) * Math.random()
     if (obstacle === wall) {
