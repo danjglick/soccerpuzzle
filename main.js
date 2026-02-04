@@ -267,12 +267,12 @@ function moveBall() {
   ball.angle += ball.xVel / BALL_RADIUS
   ball.xVel *= BALL_FRICTION
   ball.yVel *= BALL_FRICTION
-  if (isCelebration && hasGotTrophy && !hasAddedTrophyThisCelebration && ball.yVel > 0) {
-    hasGotTrophy = false
-    bonus.isEnabled = false
-    hasAddedTrophyThisCelebration = true
-    trophies.push(tries)
-  }
+  // if (isCelebration && hasGotTrophy && !hasAddedTrophyThisCelebration && ball.yVel > 0) {
+  //   hasGotTrophy = false
+  //   bonus.isEnabled = false
+  //   hasAddedTrophyThisCelebration = true
+  //   trophies.push(tries)
+  // }
 }
 
 function moveObstacles() {
@@ -312,6 +312,7 @@ function handleTouchmove(e) {
     yPos: e.touches[0].clientY + camera.yPos 
   }
   if (ball.isBeingFlung) {
+    hasFlung = true
     ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
     setTimeout(() => hasTwinPassedThisFling = false, 100)
@@ -346,10 +347,8 @@ function handleCollision() {
   handleDollar()
 }
 
-let isTwinEnabled = true
-
 function handleTwin(twin) {
-  if (isTwinEnabled && isClose(twin, ball, BALL_RADIUS + BALL_RADIUS * .75) && !hasTwinPassedThisFling) {
+  if (twin.isEnabled && isClose(twin, ball, BALL_RADIUS + BALL_RADIUS * .75) && !hasTwinPassedThisFling) {
     if (!isTwinPassing) { 
       let otherTwin = twin == twinA ? twinB : twinA
       ball.xVel = (otherTwin.xPos - ball.xPos) * .03
@@ -390,6 +389,16 @@ function handleGoal() {
       //generateLevel()
       isCelebration = true
       hasAddedTrophyThisCelebration = false
+      hasFlung = false
+      function shelfTrophy() {
+        if (hasGotTrophy && !hasAddedTrophyThisCelebration) {
+          hasGotTrophy = false
+          bonus.isEnabled = false
+          hasAddedTrophyThisCelebration = true
+          trophies.push(tries)
+        }
+      }
+      setTimeout(shelfTrophy, 2500) 
       setTimeout(() => panCamera(), 1000)
     }
   }
@@ -545,6 +554,9 @@ function handleEdge() {
       ball.xVel = 0 
       ball.yVel = 0
       hasCelebrated = true
+      if (hasFlung) {
+        setTimeout(() => document.getElementById("continueBtn").hidden = false, 1000)
+      }
     }
   }
 }
@@ -556,6 +568,8 @@ function draw() {
   ctx.save()
   ctx.translate(-camera.xPos, -camera.yPos)
   drawMenu()
+  //drawStands()
+  drawSky()
   drawDollars()
   drawTrophies()
   drawGoal()
@@ -580,49 +594,59 @@ function draw() {
   ctx.restore()
 }
 
+function drawSky() {
+  ctx.fillStyle = "blue" // "007fff"
+  ctx.fillRect(0, -canvas.height, canvas.width, GOAL_HEIGHT * 3.3)
+}
+
+function drawStands() {
+  ctx.fillStyle = "black"
+  ctx.fillRect(0, -canvas.height + GOAL_HEIGHT * 3.3, canvas.width, canvas.height - GOAL_HEIGHT * 2.3)
+}
+
 function drawMenu() {
-  if (showWelcome) {
-    ctx.textAlign = "center"
-    ctx.textBaseline = "alphabetic"
-    ctx.font = "30px arial"
-    ctx.fillStyle = "white"
-    ctx.fillText("welcome to", canvas.width / 2, canvas.height * .25)
-  }
-  if (showTitle) {
-    ctx.textAlign = "center"
-    ctx.textBaseline = "alphabetic"
-    ctx.font = "50px arial"
-    ctx.fillStyle = "white"
-    ctx.fillText("soccerpuzzle", canvas.width / 2, canvas.height * .3)
-  }
-  if (hasFlung) {
-    ctx.textAlign = "center"
-    ctx.textBaseline = "middle"
-    ctx.font = "bold 30px arial"
-    // Draw each letter with its circle
-    let colors = ["red", "yellow", "blue", "purple"]
-    for (let i = 0; i < swappableLetters.length; i++) {
-      let letter = swappableLetters[i]
-      // Draw simple circle
-      ctx.fillStyle = colors[i]
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(letter.xPos, letter.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
-      ctx.fill()
-      ctx.fillStyle = "black"
-      // Draw letter (centered both horizontally and vertically)
-      ctx.fillText(letter.char, letter.xPos, letter.yPos)
-    }
-    //
-    // Draw teal electric border around rectangle if "play" is spelled correctly
-    if (isPlaySpelledCorrectly()) {
-      drawPlayBorder()
-    }
-  }
+  // if (showWelcome) {
+  //   ctx.textAlign = "center"
+  //   ctx.textBaseline = "alphabetic"
+  //   ctx.font = "30px arial"
+  //   ctx.fillStyle = "white"
+  //   ctx.fillText("welcome to", canvas.width / 2, canvas.height * .25)
+  // }
+  // if (showTitle) {
+  //   ctx.textAlign = "center"
+  //   ctx.textBaseline = "alphabetic"
+  //   ctx.font = "50px arial"
+  //   ctx.fillStyle = "white"
+  //   ctx.fillText("soccerpuzzle", canvas.width / 2, canvas.height * .3)
+  // }
+  // if (hasFlung) {
+  //   ctx.textAlign = "center"
+  //   ctx.textBaseline = "middle"
+  //   ctx.font = "bold 30px arial"
+  //   // Draw each letter with its circle
+  //   let colors = ["red", "yellow", "blue", "purple"]
+  //   for (let i = 0; i < swappableLetters.length; i++) {
+  //     let letter = swappableLetters[i]
+  //     // Draw simple circle
+  //     ctx.fillStyle = colors[i]
+  //     ctx.lineWidth = 2
+  //     ctx.beginPath()
+  //     ctx.arc(letter.xPos, letter.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
+  //     ctx.fill()
+  //     ctx.fillStyle = "black"
+  //     // Draw letter (centered both horizontally and vertically)
+  //     ctx.fillText(letter.char, letter.xPos, letter.yPos)
+  //   }
+  //   //
+  //   // Draw teal electric border around rectangle if "play" is spelled correctly
+  //   if (isPlaySpelledCorrectly()) {
+  //     drawPlayBorder()
+  //   }
+  // }
 }
 
 function drawTrophies() {
-  let startX = canvas.width / 10
+  let startX = TROPHY_SIZE * 1.4
   let startY = -canvas.height * .85
   let spacing = TROPHY_SIZE * 2.5
   for (let i = 0; i < trophies.length; i++) {
@@ -901,10 +925,9 @@ function drawDollars() {
   for (let i = 0; i < dollars.length; i++) {
     let dollar = dollars[i]
     if (dollar.isEnabled) {
-      ctx.beginPath()
-      ctx.arc(dollar.xPos, dollar.yPos, BALL_RADIUS / 2, 0, 2 * Math.PI)
+      ctx.font = "bold 50px serif"
       ctx.fillStyle = "green"
-      ctx.fill()
+      ctx.fillText("$", dollar.xPos, dollar.yPos)
     }
   }
 }
@@ -922,7 +945,6 @@ function drawSelectionBorder() {
 
 function panCamera(isUp = true, durationMs = 500) {
   let distance = isUp ? -(canvas.height - GOAL_HEIGHT * 2) : canvas.height - GOAL_HEIGHT * 2
-  if (isCelebration) setTimeout(() => document.getElementById("continueBtn").hidden = false, 3000)
   const startY = camera.yPos
   const targetY = startY + distance
   const startTime = performance.now()
