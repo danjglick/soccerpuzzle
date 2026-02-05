@@ -112,6 +112,8 @@ function handlePuddle() {
   if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS + BALL_RADIUS * .75)) {
     ball.xVel = 0
     ball.yVel = 0
+    ball.xPos = puddle.xPos
+    ball.yPos = puddle.yPos
   }
 }
 
