@@ -62,6 +62,7 @@ let isCelebration = false
 let hasCelebrated = false
 let hasGotTrophy = false 
 let hasAddedTrophyThisCelebration = false
+let isTrophyHidden = false
 let trophies = []
 let isTwinPassing = false
 let hasTwinPassedThisFling = false

@@ -142,12 +142,24 @@ function handleWall() {
 
 function handleWormhole() {
   if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS * 2)) {
-    ball.xPos = wormholeB.xPos
-    ball.yPos = wormholeB.yPos
+    isBallHidden = true
+    if (hasGotTrophy) bonus.isEnabled = false
+    setTimeout(() => {
+      ball.xPos = wormholeB.xPos
+      ball.yPos = wormholeB.yPos
+      isBallHidden = false
+      bonus.isEnabled = true
+    }, 500)
     cooldownWormhole()
   } else if (wormholeB.isEnabled && isClose(ball, wormholeB, BALL_RADIUS * 2)) {
-    ball.xPos = wormholeA.xPos
-    ball.yPos = wormholeA.yPos
+    isBallHidden = true
+    if (hasGotTrophy) bonus.isEnabled = false
+    setTimeout(() => {
+      ball.xPos = wormholeA.xPos
+      ball.yPos = wormholeA.yPos
+      isBallHidden = false
+      bonus.isEnabled = true
+    }, 500)
     cooldownWormhole()
   }
 }
