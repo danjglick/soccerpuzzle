@@ -66,3 +66,5 @@ let trophies = []
 let isTwinPassing = false
 let hasTwinPassedThisFling = false
 let swapAnimation = null
+let isTwinAPassing = false
+let isTwinBPassing = false

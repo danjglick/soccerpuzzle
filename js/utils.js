@@ -1,11 +1,3 @@
-function disable(x) {
-  x.isEnabled = false
-}
-
-function enable(x) {
-  x.isEnabled = true
-}
-
 function panCamera(isUp = true, durationMs = 500) {
   let distance = isUp ? -(canvas.height - GOAL_HEIGHT * 2) : canvas.height - GOAL_HEIGHT * 2
   const startY = camera.yPos

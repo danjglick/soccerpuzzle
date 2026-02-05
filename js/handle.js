@@ -27,7 +27,7 @@ function handleTouchmove(e) {
     hasFlung = true
     ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
-    setTimeout(() => hasTwinPassedThisFling = false, 100)
+    setTimeout(() => { isTwinAPassing = false; isTwinBPassing = false }, 100)
   }
   handleTouchmoveToRotate(touch2)
 }
@@ -51,8 +51,8 @@ function handleCollision() {
   handlePuddle()
   handleWall()
   handleWormhole()
-  handleTwin(twinA)
-  handleTwin(twinB)
+  handleTwinA()
+  handleTwinB()
   handleKey()
   handleBonus()
   handleEnemy()
@@ -152,23 +152,30 @@ function handleWormhole() {
   }
 }
 
-function handleTwin(twin) {
-  if (twin.isEnabled && isClose(twin, ball, BALL_RADIUS * 1.5) && !hasTwinPassedThisFling) {
-    if (!isTwinPassing) { 
-      let otherTwin = twin == twinA ? twinB : twinA
-      disable(twin)
-      enable(otherTwin)
-      isTwinPassing = true
-      ball.xVel = (otherTwin.xPos - ball.xPos) * .05
-      ball.yVel = (otherTwin.yPos - ball.yPos) * .05
-    } else {
-      enable(twin)
-      isTwinPassing = false
-      hasTwinPassedThisFling = true
+function handleTwinA() {
+  if (isClose(twinA, ball, BALL_RADIUS * 1.5)) {
+    if (isTwinBPassing) {
       ball.xVel = 0
       ball.yVel = 0
+    } else {
+      isTwinAPassing = true
+      ball.xVel = (twinB.xPos - ball.xPos) * .05
+      ball.yVel = (twinB.yPos - ball.yPos) * .05
     }
   }
+}
+
+function handleTwinB() {
+  if (isClose(twinB, ball, BALL_RADIUS * 1.5)) {
+    if (isTwinAPassing) {
+      ball.xVel = 0
+      ball.yVel = 0
+    } else {
+      isTwinBPassing = true
+      ball.xVel = (twinA.xPos - ball.xPos) * .05
+      ball.yVel = (twinA.yPos - ball.yPos) * .05
+    }
+  } 
 }
 
 function handleKey() {
