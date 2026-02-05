@@ -1,0 +1,68 @@
+// npx --yes live-server --host=0.0.0.0 --port=8080
+// http://10.0.0.145:8080
+
+const FPS = 60
+const BALL_RADIUS = window.innerWidth / 16
+const BALL_SPEED_DIVISOR = 7.5
+const BALL_RESTITUTION = .85
+const BALL_MIN_SPEED = 10
+const BALL_FRICTION = 1
+const GOAL_HEIGHT = BALL_RADIUS * 1.5
+const GOAL_WIDTH = BALL_RADIUS * 4
+const WALL_LENGTH = BALL_RADIUS * 5
+const KEY_SIZE = BALL_RADIUS * .8
+const TROPHY_SIZE = BALL_RADIUS * .8
+const MAX_SPAWN_ATTEMPTS = 1000
+const MIN_SPACE_FOR_SPAWN = WALL_LENGTH + BALL_RADIUS
+const COOLDOWN_DURATION = 3000
+const SWAP_DURATION = 20
+const DOLLAR_COUNT = 5
+const ENEMY_COUNT = 0
+
+let canvas;
+let ctx;
+let ball = {}
+let goal = {}
+let cannon = {}
+let puddle = {}
+let wall = {}
+let wormholeA = {}
+let wormholeB = {}
+let twinA = {}
+let twinB = {}
+let key = {}
+let bonus = {}
+let enemies = []
+let obstacles = [cannon, puddle, wall, wormholeA, wormholeB, twinA, twinB, key, bonus]
+let swappableObstacles = [cannon, puddle, wall, wormholeA, wormholeB, twinA, twinB]
+let touch1 = { xPos: 0, yPos: 0 }
+let spawnedObstacles = []
+let rotatingObstacle = {}
+let selectedObstacle = {}
+const LETTER_SQUARE_SIZE = 50
+let letterP = { char: 'p', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let letterY = { char: 'y', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let letterA = { char: 'a', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let letterL = { char: 'l', xPos: 0, yPos: 0, originalX: 0, originalY: 0 }
+let swappableLetters = [letterP, letterY, letterA, letterL]
+let selectedLetter = null
+let letterSwapAnimation = null
+let areObstaclesHidden = false
+let showWelcome = false
+let showTitle = false
+let isBallHidden = false
+let hasFlung = false
+let playButton = { xPos: window.innerWidth / 2, yPos: window.innerHeight * .6 }
+let trophyCount = 0
+let tries = 0
+let isBottomEdgeEnabled = true
+let camera = { xPos: 0, yPos : 0 }
+let dollars = []
+let isCelebration = false
+let hasCelebrated = false
+let hasGotTrophy = false 
+let hasAddedTrophyThisCelebration = false
+let trophies = []
+let isTwinPassing = false
+let hasTwinPassedThisFling = false
+let swapAnimation = null
