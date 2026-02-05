@@ -143,7 +143,7 @@ function handleWall() {
 }
 
 function handleWormhole() {
-  if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS * 2)) {
+  if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS + BALL_RADIUS * .75)) {
     isBallHidden = true
     if (hasGotTrophy) bonus.isEnabled = false
     setTimeout(() => {
@@ -153,7 +153,7 @@ function handleWormhole() {
       bonus.isEnabled = true
     }, 500)
     cooldownWormhole()
-  } else if (wormholeB.isEnabled && isClose(ball, wormholeB, BALL_RADIUS * 2)) {
+  } else if (wormholeB.isEnabled && isClose(ball, wormholeB, BALL_RADIUS + BALL_RADIUS * .75)) {
     isBallHidden = true
     if (hasGotTrophy) bonus.isEnabled = false
     setTimeout(() => {
