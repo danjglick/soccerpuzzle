@@ -2,14 +2,16 @@ function moveBall() {
   ball.xPos += ball.xVel
   ball.yPos += ball.yVel 
   ball.angle += ball.xVel / BALL_RADIUS
-  ball.xVel *= BALL_FRICTION
-  ball.yVel *= BALL_FRICTION
   // if (isCelebration && hasGotTrophy && !hasAddedTrophyThisCelebration && ball.yVel > 0) {
   //   hasGotTrophy = false
   //   bonus.isEnabled = false
   //   hasAddedTrophyThisCelebration = true
   //   trophies.push(tries)
   // }
+  goal.xPos += goal.xVel
+  if (goal.xPos > canvas.width - GOAL_WIDTH / 2 || goal.xPos < 0 + GOAL_WIDTH / 2) {
+    goal.xVel = -goal.xVel
+  }
 }
 
 function moveObstacles() {
