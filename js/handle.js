@@ -99,7 +99,7 @@ function handleGoal() {
 }
 
 function handleCannon() {
-  if (cannon.isEnabled && isClose(ball, cannon, BALL_RADIUS * 2)) {
+  if (cannon.isEnabled && isClose(ball, cannon, BALL_RADIUS + BALL_RADIUS * .75)) {
     let speed = Math.hypot(ball.xVel, ball.yVel)
     ball.xVel = Math.sin(cannon.angle) * speed
     ball.yVel = -Math.cos(cannon.angle) * speed
@@ -199,7 +199,7 @@ function handleKey() {
 }
 
 function handleBonus() {
-  if (isClose(ball, bonus, BALL_RADIUS + BALL_RADIUS / 2)) {
+  if (isClose(ball, bonus, BALL_RADIUS + TROPHY_SIZE)) {
     hasGotTrophy = true
   }
 }
