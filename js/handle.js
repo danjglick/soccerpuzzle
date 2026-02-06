@@ -55,6 +55,7 @@ function handleCollision() {
   handleTwinB()
   handleKey()
   handleBonus()
+  handleMystery()
   handleEnemy()
   handleEdge()
   handleDollar()
@@ -202,6 +203,22 @@ function handleBonus() {
   if (isClose(ball, bonus, BALL_RADIUS + TROPHY_SIZE)) {
     hasGotTrophy = true
   }
+}
+
+function handleMystery() {
+  if (mystery.isEnabled && isClose(mystery, ball, BALL_RADIUS * 1.5)) {
+    let powerups = [examplePowerUpA, examplePowerUpB]
+    let randomPowerup = powerups[Math.floor(Math.random() * powerups.length)]
+    randomPowerup()
+  }
+}
+
+function examplePowerUpA() {
+  console.log("a")
+}
+
+function examplePowerUpB() {
+  console.log("b")
 }
 
 function handleEnemy() {

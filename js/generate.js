@@ -29,7 +29,7 @@ function generateLevel() {
 
 function generateBall() {
   let spawn = {
-    xPos: canvas.width / 2, //BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random(),
+    xPos: canvas.width / 2,
     yPos: canvas.height - BALL_RADIUS
   }
   ball = { 

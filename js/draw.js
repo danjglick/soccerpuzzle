@@ -14,8 +14,9 @@ function draw() {
     drawWall()
     drawWormhole()
     drawKey()
-    drawEnemies()
+    //drawEnemies()
     drawTwins()
+    drawMystery()
   }
   if (!isBallHidden) drawBall()
   drawBonus()
@@ -95,6 +96,18 @@ function drawTrophies() {
 }
 
 function drawBall() {
+  function drawPentagon(cx, cy, radius, rotation = 0) {
+    ctx.beginPath()
+    for (let i = 0; i < 5; i++) {
+      let angle = (i * 2 * Math.PI / 5) - Math.PI / 2 + rotation
+      let px = cx + Math.cos(angle) * radius
+      let py = cy + Math.sin(angle) * radius
+      if (i === 0) ctx.moveTo(px, py)
+      else ctx.lineTo(px, py)
+    }
+    ctx.closePath()
+    ctx.fill()
+  }
   ctx.save()
   ctx.translate(ball.xPos, ball.yPos)
   ctx.save()
@@ -138,19 +151,6 @@ function drawBall() {
   ctx.fillStyle = gradient
   ctx.fill()
   ctx.restore()
-}
-
-function drawPentagon(cx, cy, radius, rotation = 0) {
-  ctx.beginPath()
-  for (let i = 0; i < 5; i++) {
-    let angle = (i * 2 * Math.PI / 5) - Math.PI / 2 + rotation
-    let px = cx + Math.cos(angle) * radius
-    let py = cy + Math.sin(angle) * radius
-    if (i === 0) ctx.moveTo(px, py)
-    else ctx.lineTo(px, py)
-  }
-  ctx.closePath()
-  ctx.fill()
 }
 
 function drawGoal() {
@@ -285,6 +285,15 @@ function drawTwins() {
   }
   drawTriangleAt(tri1, tri2);
   drawTriangleAt(tri2, tri1);
+}
+
+function drawMystery() {
+  ctx.font = "bold 45px Arial"
+  ctx.fillStyle = "#d9bb9b"
+  ctx.fillText("?", mystery.xPos, mystery.yPos)
+  ctx.strokeStyle = "black"
+  ctx.lineWidth = 1
+  //ctx.strokeText("?", mystery.xPos, mystery.yPos)
 }
 
 function drawKey() {
