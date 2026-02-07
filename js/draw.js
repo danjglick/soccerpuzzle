@@ -2,7 +2,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.save()
   ctx.translate(-camera.xPos, -camera.yPos)
-  drawMenu()
+  //drawMenu()
   //drawStands()
   drawSky()
   drawDollars()
@@ -20,13 +20,13 @@ function draw() {
   }
   if (!isBallHidden) drawBall()
   drawBonus()
-  //drawSelectionElectricity()
-  //drawSwapAnimationElectricity()
+  drawSelectionElectricity()
+  drawSwapAnimationElectricity()
   //drawLetterSelectionElectricity()
   //drawLetterSwapAnimationElectricity()
   //drawLetterSelectionBorder()
   //drawSwappableBorders()
-  drawSelectionBorder()
+  //drawSelectionBorder()
   ctx.restore()
 }
 
@@ -41,44 +41,44 @@ function drawStands() {
 }
 
 function drawMenu() {
-  // if (showWelcome) {
-  //   ctx.textAlign = "center"
-  //   ctx.textBaseline = "alphabetic"
-  //   ctx.font = "30px arial"
-  //   ctx.fillStyle = "white"
-  //   ctx.fillText("welcome to", canvas.width / 2, canvas.height * .25)
-  // }
-  // if (showTitle) {
-  //   ctx.textAlign = "center"
-  //   ctx.textBaseline = "alphabetic"
-  //   ctx.font = "50px arial"
-  //   ctx.fillStyle = "white"
-  //   ctx.fillText("soccerpuzzle", canvas.width / 2, canvas.height * .3)
-  // }
-  // if (hasFlung) {
-  //   ctx.textAlign = "center"
-  //   ctx.textBaseline = "middle"
-  //   ctx.font = "bold 30px arial"
-  //   // Draw each letter with its circle
-  //   let colors = ["red", "yellow", "blue", "purple"]
-  //   for (let i = 0; i < swappableLetters.length; i++) {
-  //     let letter = swappableLetters[i]
-  //     // Draw simple circle
-  //     ctx.fillStyle = colors[i]
-  //     ctx.lineWidth = 2
-  //     ctx.beginPath()
-  //     ctx.arc(letter.xPos, letter.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
-  //     ctx.fill()
-  //     ctx.fillStyle = "black"
-  //     // Draw letter (centered both horizontally and vertically)
-  //     ctx.fillText(letter.char, letter.xPos, letter.yPos)
-  //   }
-  //   //
-  //   // Draw teal electric border around rectangle if "play" is spelled correctly
-  //   if (isPlaySpelledCorrectly()) {
-  //     drawPlayBorder()
-  //   }
-  // }
+  if (showWelcome) {
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.font = "30px arial"
+    ctx.fillStyle = "white"
+    ctx.fillText("welcome to", canvas.width / 2, canvas.height * .25)
+  }
+  if (showTitle) {
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.font = "50px arial"
+    ctx.fillStyle = "white"
+    ctx.fillText("soccerpuzzle", canvas.width / 2, canvas.height * .3)
+  }
+  if (hasFlung) {
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.font = "bold 30px arial"
+    // Draw each letter with its circle
+    let colors = ["red", "yellow", "blue", "purple"]
+    for (let i = 0; i < swappableLetters.length; i++) {
+      let letter = swappableLetters[i]
+      // Draw simple circle
+      ctx.fillStyle = colors[i]
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(letter.xPos, letter.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.fillStyle = "black"
+      // Draw letter (centered both horizontally and vertically)
+      ctx.fillText(letter.char, letter.xPos, letter.yPos)
+    }
+    //
+    // Draw teal electric border around rectangle if "play" is spelled correctly
+    if (isPlaySpelledCorrectly()) {
+      drawPlayBorder()
+    }
+  }
 }
 
 function drawTrophies() {
@@ -291,9 +291,6 @@ function drawMystery() {
   ctx.font = "bold 45px Arial"
   ctx.fillStyle = "#d9bb9b"
   ctx.fillText("?", mystery.xPos, mystery.yPos)
-  ctx.strokeStyle = "black"
-  ctx.lineWidth = 1
-  //ctx.strokeText("?", mystery.xPos, mystery.yPos)
 }
 
 function drawKey() {

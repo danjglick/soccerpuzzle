@@ -8,6 +8,11 @@ function initialize() {
   document.addEventListener("touchend", handleTouchend)
   document.addEventListener("wheel", (e) => e.preventDefault(), { passive: false })
   document.getElementById("continueBtn").addEventListener("click", handleContinueBtn)
-  generateLevel()
+  displayFirst()
   loopGame()
+}
+
+function displayFirst() {
+  generateLevel()
+  //generateMenu()
 }

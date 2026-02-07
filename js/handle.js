@@ -145,23 +145,35 @@ function handleWall() {
 
 function handleWormhole() {
   if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS + BALL_RADIUS * .75)) {
+    ball.xPos = wormholeB.xPos
+    ball.yPos = wormholeB.yPos
+    let xVel = ball.xVel
+    let yVel = ball.yVel
+    ball.xVel = 0
+    ball.yVel = 0
     isBallHidden = true
     if (hasGotTrophy) bonus.isEnabled = false
     setTimeout(() => {
-      ball.xPos = wormholeB.xPos
-      ball.yPos = wormholeB.yPos
       isBallHidden = false
       bonus.isEnabled = true
+      ball.xVel = xVel
+      ball.yVel = yVel
     }, 500)
     cooldownWormhole()
   } else if (wormholeB.isEnabled && isClose(ball, wormholeB, BALL_RADIUS + BALL_RADIUS * .75)) {
+    ball.xPos = wormholeA.xPos
+    ball.yPos = wormholeA.yPos
+    let xVel = ball.xVel
+    let yVel = ball.yVel
+    ball.xVel = 0
+    ball.yVel = 0
     isBallHidden = true
     if (hasGotTrophy) bonus.isEnabled = false
     setTimeout(() => {
-      ball.xPos = wormholeA.xPos
-      ball.yPos = wormholeA.yPos
       isBallHidden = false
       bonus.isEnabled = true
+      ball.xVel = xVel
+      ball.yVel = yVel
     }, 500)
     cooldownWormhole()
   }
@@ -206,19 +218,17 @@ function handleBonus() {
 }
 
 function handleMystery() {
+  function examplePowerUpA() {
+    console.log("a")
+  }
+  function examplePowerUpB() {
+    console.log("b")
+  }
   if (mystery.isEnabled && isClose(mystery, ball, BALL_RADIUS * 1.5)) {
     let powerups = [examplePowerUpA, examplePowerUpB]
     let randomPowerup = powerups[Math.floor(Math.random() * powerups.length)]
     randomPowerup()
   }
-}
-
-function examplePowerUpA() {
-  console.log("a")
-}
-
-function examplePowerUpB() {
-  console.log("b")
 }
 
 function handleEnemy() {

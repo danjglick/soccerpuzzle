@@ -1,11 +1,12 @@
-// function generateMenu() {
-//   areObstaclesHidden = true
-//   setTimeout(() => showWelcome = true, 1000)
-//   setTimeout(() => showTitle = true, 2000)
-//   setTimeout(() => { generateBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
-//   initializeLetterPositions()
-//   loopGame()  
-// }
+function generateMenu() {
+  areObstaclesHidden = true
+  isBallHidden = true
+  setTimeout(() => showWelcome = true, 1000)
+  setTimeout(() => showTitle = true, 2000)
+  setTimeout(() => { generateBall(); ball.xPos = canvas.width / 2; isBallHidden = false }, 3500)
+  initializeLetterPositions()
+  loopGame()  
+}
 
 function generateLevel() {
   isCelebration = false
