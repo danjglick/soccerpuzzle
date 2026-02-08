@@ -1,6 +1,6 @@
 let isCheatEnabled = true
 let cheatSpot = { xPos: 0, yPos: 0 }
-const TAPS_TO_ACTIVATE_CHEAT = 3
+const TAPS_TO_ACTIVATE_CHEAT = 1
 let cheatTaps = 0
 
 function handleCheatTap() {
@@ -16,7 +16,6 @@ function handleCheatTap() {
       for (let i = 0; i < obstacles.length; i++) { 
         obstacles[i].isEnabled = false 
       }
-      // new cheat effects
       bonus.isEnabled = true
       hasGotTrophy = true
     }

@@ -28,6 +28,9 @@ function handleTouchmove(e) {
     ball.xVel = (touch2.xPos - touch1.xPos) / BALL_SPEED_DIVISOR
     ball.yVel = (touch2.yPos - touch1.yPos) / BALL_SPEED_DIVISOR
     setTimeout(() => { isTwinAPassing = false; isTwinBPassing = false }, 100)
+    if (isClose(touch1, puddle, BALL_RADIUS)) {
+      setTimeout(() => puddle.isEnabled = true, 1000)
+    }
   }
   handleTouchmoveToRotate(touch2)
 }
@@ -100,7 +103,7 @@ function handleGoal() {
 }
 
 function handleCannon() {
-  if (cannon.isEnabled && isClose(ball, cannon, BALL_RADIUS + BALL_RADIUS * .75)) {
+  if (cannon.isEnabled && isClose(ball, cannon, BALL_RADIUS)) {
     let speed = Math.hypot(ball.xVel, ball.yVel)
     ball.xVel = Math.sin(cannon.angle) * speed
     ball.yVel = -Math.cos(cannon.angle) * speed
@@ -110,11 +113,12 @@ function handleCannon() {
 }
 
 function handlePuddle() {
-  if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS + BALL_RADIUS * .75)) {
+  if (puddle.isEnabled && !ball.isBeingFlung && isClose(ball, puddle, BALL_RADIUS)) {
     ball.xVel = 0
     ball.yVel = 0
     ball.xPos = puddle.xPos
     ball.yPos = puddle.yPos
+    puddle.isEnabled = false
   }
 }
 
@@ -144,7 +148,7 @@ function handleWall() {
 }
 
 function handleWormhole() {
-  if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS + BALL_RADIUS * .75)) {
+  if (wormholeA.isEnabled && isClose(ball, wormholeA, BALL_RADIUS)) {
     ball.xPos = wormholeB.xPos
     ball.yPos = wormholeB.yPos
     let xVel = ball.xVel
@@ -158,9 +162,9 @@ function handleWormhole() {
       bonus.isEnabled = true
       ball.xVel = xVel
       ball.yVel = yVel
-    }, 500)
+    }, 750)
     cooldownWormhole()
-  } else if (wormholeB.isEnabled && isClose(ball, wormholeB, BALL_RADIUS + BALL_RADIUS * .75)) {
+  } else if (wormholeB.isEnabled && isClose(ball, wormholeB, BALL_RADIUS + BALL_RADIUS)) {
     ball.xPos = wormholeA.xPos
     ball.yPos = wormholeA.yPos
     let xVel = ball.xVel
@@ -174,13 +178,13 @@ function handleWormhole() {
       bonus.isEnabled = true
       ball.xVel = xVel
       ball.yVel = yVel
-    }, 500)
+    }, 750)
     cooldownWormhole()
   }
 }
 
 function handleTwinA() {
-  if (isClose(twinA, ball, BALL_RADIUS * 1.5)) {
+  if (twinA.isEnabled && isClose(twinA, ball, BALL_RADIUS)) {
     if (isTwinBPassing) {
       ball.xVel = 0
       ball.yVel = 0
@@ -193,7 +197,7 @@ function handleTwinA() {
 }
 
 function handleTwinB() {
-  if (isClose(twinB, ball, BALL_RADIUS * 1.5)) {
+  if (twinB.isEnabled && isClose(twinB, ball, BALL_RADIUS)) {
     if (isTwinAPassing) {
       ball.xVel = 0
       ball.yVel = 0
@@ -224,7 +228,7 @@ function handleMystery() {
   function examplePowerUpB() {
     console.log("b")
   }
-  if (mystery.isEnabled && isClose(mystery, ball, BALL_RADIUS * 1.5)) {
+  if (mystery.isEnabled && isClose(mystery, ball, BALL_RADIUS)) {
     let powerups = [examplePowerUpA, examplePowerUpB]
     let randomPowerup = powerups[Math.floor(Math.random() * powerups.length)]
     randomPowerup()
@@ -234,7 +238,7 @@ function handleMystery() {
 function handleEnemy() {
   for (let i = 0; i < enemies.length; i++) {
     let enemy = enemies[i]
-    if (enemy.isEnabled && isClose(enemy, ball, BALL_RADIUS + BALL_RADIUS / 2)) {
+    if (enemy.isEnabled && isClose(enemy, ball, BALL_RADIUS)) {
       ball.xVel = (enemy.xPos - ball.xPos) / (BALL_SPEED_DIVISOR * 2)
       ball.yVel = (canvas.height - ball.yPos) / (BALL_SPEED_DIVISOR * 2)
     }
@@ -244,7 +248,7 @@ function handleEnemy() {
 function handleDollar() {
   for (let i = 0; i < dollars.length; i++) {
     let dollar = dollars[i]
-    if (isClose(ball, dollar, BALL_RADIUS + BALL_RADIUS / 2)) {
+    if (isClose(ball, dollar, BALL_RADIUS)) {
       dollar.isEnabled = false
     }
   }

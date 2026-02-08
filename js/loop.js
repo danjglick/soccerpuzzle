@@ -1,7 +1,7 @@
 function loopGame() {
-  draw()
   moveBall()
   moveObstacles()
   handleCollision()
+  draw()
   setTimeout(loopGame, getMSPerFrame())
 }

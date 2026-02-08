@@ -3,9 +3,9 @@
 
 const FPS = 60
 const BALL_RADIUS = window.innerWidth / 16
-const BALL_SPEED_DIVISOR = 7.5
+const BALL_SPEED_DIVISOR = 8
 const BALL_RESTITUTION = .85
-const BALL_MIN_SPEED = 20
+const BALL_MIN_SPEED = 15
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
 const GOAL_WIDTH = BALL_RADIUS * 4
 const WALL_LENGTH = BALL_RADIUS * 5

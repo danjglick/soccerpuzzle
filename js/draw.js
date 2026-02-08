@@ -20,13 +20,13 @@ function draw() {
   }
   if (!isBallHidden) drawBall()
   drawBonus()
-  drawSelectionElectricity()
-  drawSwapAnimationElectricity()
+  //drawSelectionElectricity()
+  //drawSwapAnimationElectricity()
   //drawLetterSelectionElectricity()
   //drawLetterSwapAnimationElectricity()
   //drawLetterSelectionBorder()
   //drawSwappableBorders()
-  //drawSelectionBorder()
+  drawSelectionBorder()
   ctx.restore()
 }
 
@@ -187,6 +187,7 @@ function drawGoal() {
 }
 
 function drawCannon() {
+  //drawCannonSightline()
   let color = "#c04667"
   ctx.save()
   ctx.translate(cannon.xPos, cannon.yPos)
@@ -210,6 +211,35 @@ function drawCannon() {
   ctx.arc(0, BALL_RADIUS, BALL_RADIUS * .375, 0, 2 * Math.PI)
   ctx.fillStyle = color
   ctx.fill()
+  ctx.restore()
+}
+
+function drawCannonSightline() {
+  if (!cannon.isEnabled) return
+  
+  ctx.save()
+  
+  // Calculate the direction vector from the cannon angle
+  // Use diagonal distance to ensure it reaches the edge of the screen
+  //let sightlineLength = Math.sqrt(canvas.width ** 2 + canvas.height ** 2)
+  let sightlineLength = BALL_RADIUS * 2.7
+  let startX = cannon.xPos
+  let startY = cannon.yPos
+  let endX = startX + Math.sin(cannon.angle) * sightlineLength
+  let endY = startY - Math.cos(cannon.angle) * sightlineLength
+  
+  // Draw dashed line for sightline
+  ctx.strokeStyle = "rgba(192, 70, 103, 0.5)" // Semi-transparent cannon color
+  ctx.lineWidth = 2
+  ctx.setLineDash([5, 5]) // Dashed pattern
+  ctx.lineCap = "round"
+  
+  ctx.beginPath()
+  ctx.moveTo(startX, startY)
+  ctx.lineTo(endX, endY)
+  ctx.stroke()
+  
+  ctx.setLineDash([]) // Reset dash pattern
   ctx.restore()
 }
 
