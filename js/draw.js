@@ -12,6 +12,8 @@ function draw() {
     drawCannon()
     drawPuddle()
     drawWall()
+    drawWallendA()
+    drawWallendB()
     drawWormhole()
     drawKey()
     //drawEnemies()
@@ -187,7 +189,7 @@ function drawGoal() {
 }
 
 function drawCannon() {
-  //drawCannonSightline()
+  drawCannonSightline()
   let color = "#c04667"
   ctx.save()
   ctx.translate(cannon.xPos, cannon.yPos)
@@ -251,24 +253,32 @@ function drawPuddle() {
 }
 
 function drawWall() {
+  if (!wallendA.isEnabled || !wallendB.isEnabled) return
   let color = "#654321"
   let ends = getWallEnds()
+  // Draw only the line between the two ends
   ctx.beginPath()
   ctx.moveTo(ends.a.xPos, ends.a.yPos)
   ctx.lineTo(ends.b.xPos, ends.b.yPos)
   ctx.lineWidth = BALL_RADIUS / 4
   ctx.strokeStyle = color
   ctx.stroke()
-  ctx.save()
-  ctx.translate(ends.a.xPos, ends.a.yPos)
-  ctx.rotate(wall.angle)
+}
+
+function drawWallendA() {
+  if (!wallendA.isEnabled) return
+  let color = "#654321"
   ctx.beginPath()
-  ctx.rect(-BALL_RADIUS * .375, -BALL_RADIUS * .375, BALL_RADIUS * .75, BALL_RADIUS * .75)
+  ctx.arc(wallendA.xPos, wallendA.yPos, BALL_RADIUS * .375, 0, 2 * Math.PI)
   ctx.fillStyle = color
   ctx.fill()
-  ctx.restore()
+}
+
+function drawWallendB() {
+  if (!wallendB.isEnabled) return
+  let color = "#654321"
   ctx.beginPath()
-  ctx.arc(ends.b.xPos, ends.b.yPos, BALL_RADIUS * .375, 0, 2 * Math.PI)
+  ctx.arc(wallendB.xPos, wallendB.yPos, BALL_RADIUS * .375, 0, 2 * Math.PI)
   ctx.fillStyle = color
   ctx.fill()
 }

@@ -93,20 +93,11 @@ function generateObstacle(obstacle) {
   let maxY = ball.spawn.yPos - BALL_RADIUS * 4
   let minDistance = MIN_SPACE_FOR_SPAWN
   let maxAttempts = MAX_SPAWN_ATTEMPTS
+  
+  // Standard obstacle generation (wallendA and wallendB are generated independently)
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     obstacle.xPos = BALL_RADIUS + (canvas.width - 2 * BALL_RADIUS) * Math.random()
     obstacle.yPos = minY + (maxY - minY) * Math.random()
-    if (obstacle === wall) {
-      obstacle.length = WALL_LENGTH
-      let endB = getWallEnds().b
-      let isEndBOutsideLeftFrame = endB.xPos < BALL_RADIUS * 2
-      let isEndBOutsideRightFrame = endB.xPos > canvas.width - BALL_RADIUS * 2
-      let isEndBOutsideTopFrame = endB.yPos < BALL_RADIUS * 4
-      let isEndBOutsideBottomFrame = endB.yPos > canvas.height - BALL_RADIUS * 4
-      if (isEndBOutsideLeftFrame || isEndBOutsideRightFrame || isEndBOutsideTopFrame || isEndBOutsideBottomFrame) {
-        continue
-      }
-    }
     let overlaps = false
     for (let placed of spawnedObstacles) {
       let dx = obstacle.xPos - placed.xPos

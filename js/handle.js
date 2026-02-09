@@ -123,27 +123,31 @@ function handlePuddle() {
 }
 
 function handleWall() {
-  if (wall.isEnabled) {
-    let dirX = Math.cos(wall.angle)
-    let dirY = Math.sin(wall.angle)
-    let toWallX = ball.xPos - wall.xPos
-    let toWallY = ball.yPos - wall.yPos
-    let projection = Math.max(0, Math.min(wall.length, toWallX * dirX + toWallY * dirY))
-    let closestX = wall.xPos + projection * dirX
-    let closestY = wall.yPos + projection * dirY
-    let toClosestX = ball.xPos - closestX
-    let toClosestY = ball.yPos - closestY
-    let distance = Math.sqrt(toClosestX * toClosestX + toClosestY * toClosestY)
-    let threshold = BALL_RADIUS + BALL_RADIUS / 8
-    if (distance < threshold && distance > 0.01) {
-      let normalX = toClosestX / distance
-      let normalY = toClosestY / distance
-      let dot = ball.xVel * normalX + ball.yVel * normalY
-      ball.xVel -= 2 * dot * normalX
-      ball.yVel -= 2 * dot * normalY
-      ball.xPos = closestX + normalX * threshold
-      ball.yPos = closestY + normalY * threshold
-    }
+  if (!wallendA.isEnabled || !wallendB.isEnabled) return
+  let ends = getWallEnds()
+  let dirX = ends.b.xPos - ends.a.xPos
+  let dirY = ends.b.yPos - ends.a.yPos
+  let wallLength = Math.sqrt(dirX * dirX + dirY * dirY)
+  if (wallLength < 0.01) return
+  dirX /= wallLength
+  dirY /= wallLength
+  let toWallX = ball.xPos - ends.a.xPos
+  let toWallY = ball.yPos - ends.a.yPos
+  let projection = Math.max(0, Math.min(wallLength, toWallX * dirX + toWallY * dirY))
+  let closestX = ends.a.xPos + projection * dirX
+  let closestY = ends.a.yPos + projection * dirY
+  let toClosestX = ball.xPos - closestX
+  let toClosestY = ball.yPos - closestY
+  let distance = Math.sqrt(toClosestX * toClosestX + toClosestY * toClosestY)
+  let threshold = BALL_RADIUS + BALL_RADIUS / 8
+  if (distance < threshold && distance > 0.01) {
+    let normalX = toClosestX / distance
+    let normalY = toClosestY / distance
+    let dot = ball.xVel * normalX + ball.yVel * normalY
+    ball.xVel -= 2 * dot * normalX
+    ball.yVel -= 2 * dot * normalY
+    ball.xPos = closestX + normalX * threshold
+    ball.yPos = closestY + normalY * threshold
   }
 }
 
@@ -343,11 +347,6 @@ function handleTouchstartToRotate() {
     rotatingObstacle = cannon
     return
   }
-  let wallEnds = getWallEnds()
-  if (isClose(touch1, wallEnds.b, BALL_RADIUS)) {
-    rotatingObstacle = wall
-    return
-  }
 }
 
 function handleTouchstartToSwap() {
@@ -429,13 +428,6 @@ function handleTouchmoveToRotate(touch2) {
     let dx = touch2.xPos - cannon.xPos
     let dy = touch2.yPos - cannon.yPos
     cannon.angle = Math.atan2(-dx, dy)
-  }
-  if (rotatingObstacle === wall) {
-    let dx = touch2.xPos - wall.xPos
-    let dy = touch2.yPos - wall.yPos
-    wall.angle = Math.atan2(dy, dx)
-    let wallLength = Math.sqrt(dx * dx + dy * dy)
-    wall.length = Math.max(WALL_LENGTH, wallLength)
   }
 }
 

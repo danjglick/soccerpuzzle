@@ -92,16 +92,14 @@ function getCannonHandle() {
 }
 
 function getWallEnds() {
-  let dirX = Math.cos(wall.angle)
-  let dirY = Math.sin(wall.angle)
   return {
     a: { 
-      xPos: wall.xPos, 
-      yPos: wall.yPos 
+      xPos: wallendA.xPos, 
+      yPos: wallendA.yPos 
     },
     b: { 
-      xPos: wall.xPos + wall.length * dirX, 
-      yPos: wall.yPos + wall.length * dirY 
+      xPos: wallendB.xPos, 
+      yPos: wallendB.yPos 
     }
   }
 }
