@@ -49,7 +49,7 @@ function handleContinueBtn() {
 }
 
 function handleCollision() {
-  handleGoal()
+  //handleGoal()
   handleCannon()
   handlePuddle()
   handleWall()
@@ -257,7 +257,7 @@ function handleDollar() {
 function handleEdge() {
   let isBallAtLeftEdge = ball.xPos - BALL_RADIUS <= 0
   let isBallAtRightEdge = ball.xPos + BALL_RADIUS >= canvas.width
-  let isBallAtTopEdge = ball.yPos - BALL_RADIUS < GOAL_HEIGHT
+  let isBallAtTopEdge = ball.yPos - BALL_RADIUS < 0
   let isBallAtBottomEdge = ball.yPos + BALL_RADIUS > canvas.height + BALL_RADIUS * 2
   let isBallHorizontallyAlignedWithGoal = ball.xPos > goal.xPos - GOAL_WIDTH / 2 && ball.xPos < goal.xPos + GOAL_WIDTH / 2 
   if (isBallAtLeftEdge) {
@@ -266,8 +266,8 @@ function handleEdge() {
   } else if (isBallAtRightEdge) {
     ball.xPos = canvas.width - BALL_RADIUS
     ball.xVel = -ball.xVel * BALL_RESTITUTION
-  } else if (!isCelebration && isBallAtTopEdge && !isBallHorizontallyAlignedWithGoal) {
-    ball.yPos = GOAL_HEIGHT + BALL_RADIUS
+  } else if (!isCelebration && isBallAtTopEdge) {
+    ball.yPos = BALL_RADIUS
     ball.yVel = -ball.yVel * BALL_RESTITUTION
   } else if (isBottomEdgeEnabled && isBallAtBottomEdge) {
     isBottomEdgeEnabled = false

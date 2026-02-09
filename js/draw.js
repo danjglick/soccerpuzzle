@@ -7,7 +7,7 @@ function draw() {
   drawSky()
   drawDollars()
   drawTrophies()
-  drawGoal()
+  //drawGoal()
   if (!areObstaclesHidden) {
     drawCannon()
     drawPuddle()
@@ -96,61 +96,64 @@ function drawTrophies() {
 }
 
 function drawBall() {
-  function drawPentagon(cx, cy, radius, rotation = 0) {
-    ctx.beginPath()
-    for (let i = 0; i < 5; i++) {
-      let angle = (i * 2 * Math.PI / 5) - Math.PI / 2 + rotation
-      let px = cx + Math.cos(angle) * radius
-      let py = cy + Math.sin(angle) * radius
-      if (i === 0) ctx.moveTo(px, py)
-      else ctx.lineTo(px, py)
-    }
-    ctx.closePath()
-    ctx.fill()
-  }
-  ctx.save()
-  ctx.translate(ball.xPos, ball.yPos)
-  ctx.save()
-  ctx.rotate(ball.angle)
-  ctx.beginPath()
-  ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = "white"
-  ctx.fill()
-  ctx.strokeStyle = "#333"
-  ctx.lineWidth = 2
-  ctx.stroke()
-  ctx.fillStyle = "#333"
-  drawPentagon(0, 0, BALL_RADIUS * 0.4)
-  let outerRadius = BALL_RADIUS * 0.85
-  for (let i = 0; i < 5; i++) {
-    let angle = (i * 2 * Math.PI / 5) - Math.PI / 2
-    let px = Math.cos(angle) * outerRadius
-    let py = Math.sin(angle) * outerRadius
-    drawPentagon(px, py, BALL_RADIUS * 0.3, angle + Math.PI)
-  }
-  ctx.strokeStyle = "#333"
-  ctx.lineWidth = 1
-  for (let i = 0; i < 5; i++) {
-    let angle = (i * 2 * Math.PI / 5) - Math.PI / 2
-    let startRadius = BALL_RADIUS * 0.4
-    let endRadius = BALL_RADIUS * 0.7
-    ctx.beginPath()
-    ctx.moveTo(Math.cos(angle) * startRadius, Math.sin(angle) * startRadius)
-    ctx.lineTo(Math.cos(angle) * endRadius, Math.sin(angle) * endRadius)
-    ctx.stroke()
-  }
-  ctx.restore()
-  let gradient = ctx.createRadialGradient(
-    -BALL_RADIUS * 0.3, -BALL_RADIUS * 0.3, BALL_RADIUS * 0.1,
-    0, 0, BALL_RADIUS
-  )
-  gradient.addColorStop(0, "rgba(255, 255, 255, 0.3)")
-  gradient.addColorStop(1, "rgba(0, 0, 0, 0.15)")
-  ctx.beginPath()
-  ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
-  ctx.fillStyle = gradient
-  ctx.fill()
-  ctx.restore()
+  let element = document.createElement("IMG")
+  element.src = "images/spaceship.png"
+  ctx.drawImage(element, ball.xPos - BALL_RADIUS * 4 / 2, ball.yPos - BALL_RADIUS * 4 / 2, BALL_RADIUS * 3, BALL_RADIUS * 2)
+  // function drawPentagon(cx, cy, radius, rotation = 0) {
+  //   ctx.beginPath()
+  //   for (let i = 0; i < 5; i++) {
+  //     let angle = (i * 2 * Math.PI / 5) - Math.PI / 2 + rotation
+  //     let px = cx + Math.cos(angle) * radius
+  //     let py = cy + Math.sin(angle) * radius
+  //     if (i === 0) ctx.moveTo(px, py)
+  //     else ctx.lineTo(px, py)
+  //   }
+  //   ctx.closePath()
+  //   ctx.fill()
+  // }
+  // ctx.save()
+  // ctx.translate(ball.xPos, ball.yPos)
+  // ctx.save()
+  // ctx.rotate(ball.angle)
+  // ctx.beginPath()
+  // ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
+  // ctx.fillStyle = "white"
+  // ctx.fill()
+  // ctx.strokeStyle = "#333"
+  // ctx.lineWidth = 2
+  // ctx.stroke()
+  // ctx.fillStyle = "#333"
+  // drawPentagon(0, 0, BALL_RADIUS * 0.4)
+  // let outerRadius = BALL_RADIUS * 0.85
+  // for (let i = 0; i < 5; i++) {
+  //   let angle = (i * 2 * Math.PI / 5) - Math.PI / 2
+  //   let px = Math.cos(angle) * outerRadius
+  //   let py = Math.sin(angle) * outerRadius
+  //   drawPentagon(px, py, BALL_RADIUS * 0.3, angle + Math.PI)
+  // }
+  // ctx.strokeStyle = "#333"
+  // ctx.lineWidth = 1
+  // for (let i = 0; i < 5; i++) {
+  //   let angle = (i * 2 * Math.PI / 5) - Math.PI / 2
+  //   let startRadius = BALL_RADIUS * 0.4
+  //   let endRadius = BALL_RADIUS * 0.7
+  //   ctx.beginPath()
+  //   ctx.moveTo(Math.cos(angle) * startRadius, Math.sin(angle) * startRadius)
+  //   ctx.lineTo(Math.cos(angle) * endRadius, Math.sin(angle) * endRadius)
+  //   ctx.stroke()
+  // }
+  // ctx.restore()
+  // let gradient = ctx.createRadialGradient(
+  //   -BALL_RADIUS * 0.3, -BALL_RADIUS * 0.3, BALL_RADIUS * 0.1,
+  //   0, 0, BALL_RADIUS
+  // )
+  // gradient.addColorStop(0, "rgba(255, 255, 255, 0.3)")
+  // gradient.addColorStop(1, "rgba(0, 0, 0, 0.15)")
+  // ctx.beginPath()
+  // ctx.arc(0, 0, BALL_RADIUS, 0, 2 * Math.PI)
+  // ctx.fillStyle = gradient
+  // ctx.fill()
+  // ctx.restore()
 }
 
 function drawGoal() {
@@ -354,12 +357,12 @@ function drawKey() {
     //
     ctx.restore()
     //
-    ctx.beginPath()
-    ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
-    ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
-    ctx.lineWidth = 5
-    ctx.strokeStyle = color
-    ctx.stroke()
+    // ctx.beginPath()
+    // ctx.moveTo(goal.xPos - GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
+    // ctx.lineTo(goal.xPos + GOAL_WIDTH / 2, goal.yPos + GOAL_HEIGHT)
+    // ctx.lineWidth = 5
+    // ctx.strokeStyle = color
+    // ctx.stroke()
   }
 }
 

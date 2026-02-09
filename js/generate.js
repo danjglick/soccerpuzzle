@@ -89,7 +89,7 @@ function generateObstacle(obstacle) {
   obstacle.angle = Math.random() * 2 * Math.PI
   obstacle.xVel = 0
   obstacle.yVel = 0
-  let minY = goal.yPos + GOAL_HEIGHT + BALL_RADIUS * 2
+  let minY = BALL_RADIUS
   let maxY = ball.spawn.yPos - BALL_RADIUS * 4
   let minDistance = MIN_SPACE_FOR_SPAWN
   let maxAttempts = MAX_SPAWN_ATTEMPTS
