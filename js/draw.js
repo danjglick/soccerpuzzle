@@ -23,13 +23,13 @@ function draw() {
   }
   if (!isBallHidden) drawBall()
   drawBonus()
-  drawSelectionElectricity()
-  drawSwapAnimationElectricity()
+  //drawSelectionElectricity()
+  //drawSwapAnimationElectricity()
   //drawLetterSelectionElectricity()
   //drawLetterSwapAnimationElectricity()
   //drawLetterSelectionBorder()
   //drawSwappableBorders()
-  //drawSelectionBorder()
+  drawSelectionBorder()
   ctx.restore()
 }
 
