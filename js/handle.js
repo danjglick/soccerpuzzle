@@ -252,7 +252,7 @@ function handleEnemy() {
 function handleDollar() {
   for (let i = 0; i < dollars.length; i++) {
     let dollar = dollars[i]
-    if (isClose(ball, dollar, BALL_RADIUS)) {
+    if (isClose(ball, dollar, BALL_RADIUS * 1.5)) {
       dollar.isEnabled = false
     }
   }
@@ -322,17 +322,18 @@ function handleEdge() {
     if (Math.abs(ball.yVel) < BALL_MIN_SPEED) {
       ball.xVel = 0 
       ball.yVel = 0
-      hasCelebrated = true
-      if (hasFlung) {
-        function shelfTrophy() {
-          if (hasGotTrophy && !hasAddedTrophyThisCelebration) {
-            hasGotTrophy = false
-            bonus.isEnabled = false
-            hasAddedTrophyThisCelebration = true
-            trophies.push(tries)
-          }
+      function shelfTrophy() {
+        if (hasGotTrophy && !hasAddedTrophyThisCelebration) {
+          hasGotTrophy = false
+          bonus.isEnabled = false
+          hasAddedTrophyThisCelebration = true
+          trophies.push(tries)
         }
-        setTimeout(shelfTrophy, 1000)
+      }
+      setTimeout(shelfTrophy, 1000)
+      if (hasFlung) {
+        setTimeout(() => { dollars = []; hasCelebrated = true }, 500)
+        setTimeout(() => generateDollars(), 1000)
         setTimeout(() => document.getElementById("continueBtn").hidden = false, 2000)
       }
     }

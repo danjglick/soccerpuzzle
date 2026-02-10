@@ -3,8 +3,9 @@ function draw() {
   ctx.save()
   ctx.translate(-camera.xPos, -camera.yPos)
   //drawMenu()
-  //drawStands()
+  drawStands()
   drawSky()
+  drawField()
   drawDollars()
   drawTrophies()
   drawGoal()
@@ -22,24 +23,40 @@ function draw() {
   }
   if (!isBallHidden) drawBall()
   drawBonus()
-  //drawSelectionElectricity()
-  //drawSwapAnimationElectricity()
+  drawSelectionElectricity()
+  drawSwapAnimationElectricity()
   //drawLetterSelectionElectricity()
   //drawLetterSwapAnimationElectricity()
   //drawLetterSelectionBorder()
   //drawSwappableBorders()
-  drawSelectionBorder()
+  //drawSelectionBorder()
   ctx.restore()
 }
 
 function drawSky() {
   ctx.fillStyle = "blue" // "007fff"
   ctx.fillRect(0, -canvas.height, canvas.width, GOAL_HEIGHT * 3.3)
+  ctx.fillStyle = "#82614d"
+  ctx.fillRect(0, -canvas.height * .83, canvas.width, 10)
 }
 
 function drawStands() {
-  ctx.fillStyle = "black"
+  ctx.fillStyle = "#071c07"
   ctx.fillRect(0, -canvas.height + GOAL_HEIGHT * 3.3, canvas.width, canvas.height - GOAL_HEIGHT * 2.3)
+  let yPos = -canvas.height * 1.055
+  while (yPos < 0) { // ending yPos, maybe -40 
+    let xPos = -50
+    while (xPos < canvas.width) {
+      ctx.drawImage(crowdImg, xPos, yPos, 250, 250)
+      xPos += 100
+    }
+    yPos += 100
+  }
+}
+
+function drawField() {
+  ctx.fillStyle = "#071c07"
+  ctx.fillRect(0, GOAL_HEIGHT, canvas.width, canvas.height)
 }
 
 function drawMenu() {
@@ -156,10 +173,12 @@ function drawBall() {
 }
 
 function drawGoal() {
+  ctx.fillStyle = "#071c07"
+  ctx.fillRect(goal.xPos - GOAL_WIDTH / 2, goal.yPos, GOAL_WIDTH, GOAL_HEIGHT)
   let netSpacing = BALL_RADIUS / 3
   let leftPost = goal.xPos - GOAL_WIDTH / 2
   let rightPost = goal.xPos + GOAL_WIDTH / 2
-  ctx.strokeStyle = "#555"
+  ctx.strokeStyle = "grey" //#555
   ctx.lineWidth = 1.5
   for (let x = leftPost; x <= rightPost; x += netSpacing) {
     ctx.beginPath()
@@ -246,8 +265,45 @@ function drawCannonSightline() {
 }
 
 function drawPuddle() {
+  // Create an irregular puddle shape with smooth rounded edges
+  let centerX = puddle.xPos
+  let centerY = puddle.yPos
+  let baseRadius = BALL_RADIUS * .75
+  let points = 16
+  
+  // Calculate all points first
+  let puddlePoints = []
+  for (let i = 0; i < points; i++) {
+    let angle = (i / points) * Math.PI * 2
+    // Add irregularity using sine waves with different frequencies for organic shape
+    let radiusVariation = 1 + 
+      Math.sin(angle * 2) * 0.15 + 
+      Math.cos(angle * 3) * 0.1 +
+      Math.sin(angle * 5) * 0.05
+    // Add a subtle inward curve in the middle (slight depression)
+    let centerCurve = Math.sin(angle * 4) * 0.08
+    let radius = baseRadius * (radiusVariation - centerCurve)
+    puddlePoints.push({
+      x: centerX + Math.cos(angle) * radius,
+      y: centerY + Math.sin(angle) * radius
+    })
+  }
+  
+  // Draw with smooth curves using quadratic curves
   ctx.beginPath()
-  ctx.arc(puddle.xPos, puddle.yPos, BALL_RADIUS * .75, 0, 2 * Math.PI)
+  ctx.moveTo(puddlePoints[0].x, puddlePoints[0].y)
+  for (let i = 0; i < points; i++) {
+    let prev = puddlePoints[(i - 1 + points) % points]
+    let current = puddlePoints[i]
+    let next = puddlePoints[(i + 1) % points]
+    // Use a smoother control point that considers the previous point for continuity
+    let controlX = current.x + (next.x - prev.x) * 0.25
+    let controlY = current.y + (next.y - prev.y) * 0.25
+    let endX = (current.x + next.x) / 2
+    let endY = (current.y + next.y) / 2
+    ctx.quadraticCurveTo(controlX, controlY, endX, endY)
+  }
+  ctx.closePath()
   ctx.fillStyle = "#305CDE"
   ctx.fill()
 }
@@ -406,9 +462,30 @@ function drawDollars() {
   for (let i = 0; i < dollars.length; i++) {
     let dollar = dollars[i]
     if (dollar.isEnabled) {
-      ctx.font = "bold 50px serif"
-      ctx.fillStyle = "green"
-      ctx.fillText("$", dollar.xPos, dollar.yPos)
+      if (hasCelebrated) {
+        ctx.beginPath()
+        ctx.fillStyle = "white"
+        ctx.arc(dollar.xPos, dollar.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+        ctx.fill()
+        ctx.strokeStyle = "black"
+        ctx.stroke()
+        ctx.font = "bold 50px serif"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText("❤️", dollar.xPos, dollar.yPos)
+      } else {
+        ctx.beginPath()
+        ctx.fillStyle = "green"
+        ctx.arc(dollar.xPos, dollar.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+        ctx.fill()
+        ctx.strokeStyle = "black"
+        ctx.stroke()
+        ctx.font = "bold 50px serif"
+        ctx.fillStyle = "black"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText("$", dollar.xPos, dollar.yPos)
+      }
     }
   }
 }

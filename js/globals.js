@@ -3,7 +3,7 @@
 
 const FPS = 60
 const BALL_RADIUS = window.innerWidth / 16
-const BALL_SPEED_DIVISOR = 8
+const BALL_SPEED_DIVISOR = 7.5
 const BALL_RESTITUTION = .85
 const BALL_MIN_SPEED = 15
 const GOAL_HEIGHT = BALL_RADIUS * 1.5
@@ -71,3 +71,5 @@ let hasTwinPassedThisFling = false
 let swapAnimation = null
 let isTwinAPassing = false
 let isTwinBPassing = false
+let crowdImg = document.createElement("IMG")
+crowdImg.src = "images/crowd.png";
