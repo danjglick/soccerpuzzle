@@ -37,7 +37,7 @@ function drawSky() {
   ctx.fillStyle = "blue" // "007fff"
   ctx.fillRect(0, -canvas.height, canvas.width, GOAL_HEIGHT * 3.3)
   ctx.fillStyle = "#82614d"
-  ctx.fillRect(0, -canvas.height * .83, canvas.width, 10)
+  ctx.fillRect(0, -canvas.height + GOAL_HEIGHT * 3.3, canvas.width, 10)
 }
 
 function drawStands() {
@@ -102,7 +102,7 @@ function drawMenu() {
 
 function drawTrophies() {
   let startX = TROPHY_SIZE * 1.4
-  let startY = -canvas.height * .85
+  let startY = -canvas.height + GOAL_HEIGHT * 2.9
   let spacing = TROPHY_SIZE * 2.5
   for (let i = 0; i < trophies.length; i++) {
     let x = startX + i * spacing
